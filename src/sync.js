@@ -3,6 +3,9 @@ import PQueue from 'p-queue'
 import { debounce, isEmpty, cloneDeepWith } from './utils'
 import localStore from './localStore'
 import appStore from './AppStore'
+import userTxsStore from './UserTxsStore'
+import userTagsStore from './UserTagsStore'
+import userAddressesStore from './UserAddressesStore'
 import * as actions from './actions'
 
 const queue = new PQueue({
