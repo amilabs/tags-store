@@ -7,20 +7,28 @@ import userTagsStore from './UserTagsStore'
 import userTxsStore from './UserTxsStore'
 import loggerStore from './LoggerStore'
 import appStore from './AppStore'
+import { syncChanges, syncOptions } from './sync'
 
 
 let storageBinding
 
-export function initDatabase (namespace) {
+export function initDatabase (namespace, options) {
+  if (options) {
+    syncOptions(options)
+  }
+
   localStore.switch(namespace)
   actions.boundResetFromStore()
   storageBinding?.cancel()
   storageBinding = bindStorage()
 }
 
-export function registerStore (store) {
+export function registerStore (store, sync) {
   store.addListener(() => {
     localStore.store(store.key, store.getState())
+    if (sync) {
+      syncChanges()
+    }
   })
 }
 
@@ -36,13 +44,14 @@ export function exportStoreToJSON () {
 export function importStoreFromJSON (data) {
   localStore.reset()
   actions.boundResetFromData(data)
+  syncChanges()
 }
 
 registerStore(appStore)
-registerStore(userInfoStore)
-registerStore(userAddressesStore)
-registerStore(userTagsStore)
-registerStore(userTxsStore)
+registerStore(userInfoStore, true)
+registerStore(userAddressesStore, true)
+registerStore(userTagsStore, true)
+registerStore(userTxsStore, true)
 
 function bindStorage () {
   let lazy = 0
@@ -77,6 +86,7 @@ function bindStorage () {
 }
 
 export {
+  syncChanges,
   actions,
   dispatcher,
   localStore,

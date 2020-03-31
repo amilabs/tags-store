@@ -1,6 +1,6 @@
 {
   "name": "@rikishi/tags-store",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "author": "Anton Tursenev <anton@rikishi.info>",
   "license": "MIT",
   "main": "lib/index.js",
@@ -42,6 +42,8 @@
     "rollup": "1.31.0",
     "rollup-plugin-analyzer": "3.2.2",
     "rollup-plugin-babel": "4.3.3",
-    "rollup-plugin-terser": "5.2.0"
+    "rollup-plugin-terser": "5.2.0",
+    "unfetch": "4.1.0",
+    "p-queue": "6.3.0"
   }
 }
