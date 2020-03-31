@@ -49,7 +49,7 @@ export function syncOptions (options) {
 
 function userInit () {
   const userId = localStore.userId()
-  return fetch(`${syncUserApi}/${userId}`, { ...requestOptions, method: 'PUT' })
+  return fetch(`${OPTIONS.syncUserApi}/${userId}`, { ...requestOptions, method: 'PUT' })
     .then(response => (response.ok ? response.json() : Promise.reject()))
 }
 
@@ -57,7 +57,7 @@ function remoteSyncChanges (updateAfterConflict = true) {
   return userInit()
     .then(user => {
       const timestamp = appStore.getLastSyncedAt()
-      return fetch(`${syncApi}/${user.idUser}/${timestamp}`, { ...requestOptions, method: 'GET' })
+      return fetch(`${OPTIONS.syncApi}/${user.idUser}/${timestamp}`, { ...requestOptions, method: 'GET' })
         .then(response => (response.ok ? response.json() : Promise.reject()))
         .then(data => (data && Object.hasOwnProperty.call(data, 'lastSyncedAt') ? data : Promise.reject()))
         .then(({ lastSyncedAt, changes }) => {
