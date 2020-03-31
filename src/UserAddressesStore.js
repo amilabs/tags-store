@@ -6,6 +6,7 @@ import {
   ADD_ADDRESS_TAG,
   CLEAR_DATABASE,
   MARK_ALL_AS_DIRTY,
+  MERGE_DATA,
   REMOVE_ADDRESS_TAG,
   REMOVE_ADDRESS,
   RESET_FROM_DATA,
@@ -33,6 +34,7 @@ class UserAddressesStore extends ReduceStore {
       [ADD_ADDRESS_TAG]: this.handleAddAddressTag,
       [CLEAR_DATABASE]: this.handleClearDatabase,
       [MARK_ALL_AS_DIRTY]: this.handleMarkAllAsDirty,
+      [MERGE_DATA]: this.handleMergeData,
       [REMOVE_ADDRESS_TAG]: this.handleRemoveAddressTag,
       [REMOVE_ADDRESS]: this.handleRemoveAddress,
       [REPLACE_ADDRESS_TAGS_AND_NOTE]: this.handleReplaceAddressTagsAndNote,
@@ -156,6 +158,39 @@ class UserAddressesStore extends ReduceStore {
     }
 
     return state
+  }
+
+  handleMergeData = (state, action) => {
+    this.getDispatcher().waitFor([
+      userTagsStore.getDispatchToken(),
+    ])
+
+    if (isEmpty(action?.payload?.userAddresses?.items)) {
+      return state
+    }
+
+    const now = Date.now()
+    const items = action.payload.userAddresses.items.reduce((out, item) => {
+      const key = this.createKey(item.address)
+      out[key] = {
+        address: item.address,
+        addressTags: uniqBy([].concat(
+          state?.items?.[key]?.addressTags ?? [],
+          item.addressTags,
+        ), tag => userTagsStore.createKey(tag)),
+        addressUserNote: item.addressUserNote,
+        createdTime: item.createdTime || now,
+        updatedTime: item.updatedTime || now,
+        dirty: state?.items?.[key] ? 2 : 1,
+      }
+      return out
+    }, {})
+
+    return {
+      ...state,
+      tmpRemoved: omit(state?.tmpRemoved, Object.keys(items)),
+      items: { ...state?.items, ...items },
+    }
   }
 
   handleResetFromData = (state, action) => {

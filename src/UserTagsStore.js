@@ -6,6 +6,7 @@ import {
   ADD_ADDRESS_TAG,
   CLEAR_DATABASE,
   MARK_ALL_AS_DIRTY,
+  MERGE_DATA,
   REPLACE_ADDRESS_TAGS_AND_NOTE,
   RESET_FROM_DATA,
   RESET_FROM_STORE,
@@ -29,6 +30,7 @@ class UserTagsStore extends ReduceStore {
       [ADD_ADDRESS_TAG]: this.handleAddAddressTag,
       [CLEAR_DATABASE]: this.handleClearDatabase,
       [MARK_ALL_AS_DIRTY]: this.handleMarkAllAsDirty,
+      [MERGE_DATA]: this.handleMergeData,
       [REPLACE_ADDRESS_TAGS_AND_NOTE]: this.handleReplaceAddressTagsAndNote,
       [RESET_FROM_DATA]: this.handleResetFromData,
       [RESET_FROM_STORE]: this.handleResetFromStore,
@@ -122,6 +124,28 @@ class UserTagsStore extends ReduceStore {
     }
 
     return state
+  }
+
+  handleMergeData = (state, action) => {
+    if (isEmpty(action?.payload?.userTags?.items)) {
+      return state
+    }
+
+    const items = action.payload.userTags.items.reduce((out, item) => {
+      const key = this.createKey(item.tagName)
+      out[key] = {
+        tagName: item.tagName,
+        tagUserNote: item.tagUserNote,
+        dirty: state?.items?.[key] ? 2 : 1,
+      }
+      return out
+    }, {})
+
+    return {
+      ...state,
+      tmpRemoved: omit(state?.tmpRemoved, Object.keys(items)),
+      items: { ...state?.items, ...items },
+    }
   }
 
   handleResetFromData = (state, action) => {

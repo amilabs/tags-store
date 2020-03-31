@@ -7,7 +7,7 @@ import userTagsStore from './UserTagsStore'
 import userTxsStore from './UserTxsStore'
 import loggerStore from './LoggerStore'
 import appStore from './AppStore'
-import { syncChanges, syncOptions } from './sync'
+import { syncChanges, syncOptions, syncChangesQueue } from './sync'
 
 
 let storageBinding
@@ -17,10 +17,23 @@ export function initDatabase (namespace, options) {
     syncOptions(options)
   }
 
+  let prevStore
+  if (options?.mergeWithCurrent) {
+    prevStore = exportStoreToJSON()
+  }
+
   localStore.switch(namespace)
   actions.boundResetFromStore()
   storageBinding?.cancel()
   storageBinding = bindStorage()
+
+  if (options?.mergeWithCurrent) {
+    syncChangesQueue()
+      .then(() => {
+        actions.boundMergeData(prevStore)
+        syncChanges()
+      })
+  }
 }
 
 export function registerStore (store, sync) {

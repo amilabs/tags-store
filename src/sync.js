@@ -12,11 +12,6 @@ const queue = new PQueue({
   concurrency: 1,
 })
 
-const syncChangesLazy = debounce(() => {
-  queue.clear()
-  queue.add(() => remoteSyncChanges())
-}, 500)
-
 const requestOptions = {
   mode: 'cors',
   cache: 'no-cache',
@@ -29,6 +24,13 @@ const OPTIONS = {
   syncApi: undefined,
   syncUserApi: undefined,
   accessTagsNotes: false,
+}
+
+const syncChangesLazy = debounce(syncChangesQueue, 500)
+
+export function syncChangesQueue () {
+  queue.clear()
+  return queue.add(() => remoteSyncChanges())
 }
 
 export function syncChanges (renewalOnly = false) {

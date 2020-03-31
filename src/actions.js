@@ -3,6 +3,7 @@ import dispatcher from './dispatcher'
 export const ADD_ADDRESS_TAG = 'address_tag_add'
 export const CLEAR_DATABASE = 'clear_database'
 export const MARK_ALL_AS_DIRTY = 'mark_all_as_dirty'
+export const MERGE_DATA = 'merge_data'
 export const REMOVE_ADDRESS = 'address_remove'
 export const REMOVE_ADDRESS_TAG = 'address_tag_remove'
 export const REMOVE_TX = 'remove_tx'
@@ -115,6 +116,17 @@ export const resetFromData = (data) => ({
 export const boundResetFromData = (data) => {
   dispatcher.dispatch(togglePushChanges(false))
   dispatcher.dispatch(resetFromData(data))
+  dispatcher.dispatch(togglePushChanges(true))
+}
+
+export const mergeData = (data) => ({
+  type: MERGE_DATA,
+  payload: data,
+})
+
+export const boundMergeData = (data) => {
+  dispatcher.dispatch(togglePushChanges(false))
+  dispatcher.dispatch(mergeData(data))
   dispatcher.dispatch(togglePushChanges(true))
 }
 

@@ -5,6 +5,7 @@ import { isEmpty, omit, pickBy, mapValues } from './utils'
 import {
   CLEAR_DATABASE,
   MARK_ALL_AS_DIRTY,
+  MERGE_DATA,
   REMOVE_TX,
   REPLACE_TX_NOTE,
   RESET_FROM_DATA,
@@ -29,6 +30,7 @@ class UserTxsStore extends ReduceStore {
     return {
       [CLEAR_DATABASE]: this.handleClearDatabase,
       [MARK_ALL_AS_DIRTY]: this.handleMarkAllAsDirty,
+      [MERGE_DATA]: this.handleMergeData,
       [REMOVE_TX]: this.handleRemoveTx,
       [REPLACE_TX_NOTE]: this.handleReplaceTxNote,
       [RESET_FROM_DATA]: this.handleResetFromData,
@@ -142,6 +144,31 @@ class UserTxsStore extends ReduceStore {
     }
 
     return state
+  }
+
+  handleMergeData = (state, action) => {
+    if (isEmpty(action?.payload?.userTxs?.items)) {
+      return state
+    }
+
+    const now = Date.now()
+    const items = action.payload.userTxs.items.reduce((out, item) => {
+      const key = this.createKey(item.txHash)
+      out[key] = {
+        txHash: item.txHash,
+        txUserNote: item.txUserNote,
+        createdTime: item.createdTime || now,
+        updatedTime: item.updatedTime || now,
+        dirty: state?.items?.[key] ? 2 : 1,
+      }
+      return out
+    }, {})
+
+    return {
+      ...state,
+      tmpRemoved: omit(state?.tmpRemoved, Object.keys(items)),
+      items: { ...state?.items, ...items },
+    }
   }
 
   /**
