@@ -13,27 +13,31 @@ import { syncChanges, syncOptions, syncChangesQueue } from './sync'
 let storageBinding
 
 export function initDatabase (namespace, options) {
-  if (options) {
-    syncOptions(options)
-  }
+  return new Promise(resolve => {
+    if (options) {
+      syncOptions(options)
+    }
 
-  let prevStore
-  if (options?.mergeWithCurrent) {
-    prevStore = exportStoreToJSON()
-  }
+    let prevStore
+    if (options?.mergeWithCurrent) {
+      prevStore = exportStoreToJSON()
+    }
 
-  localStore.switch(namespace)
-  actions.boundResetFromStore()
-  storageBinding?.cancel()
-  storageBinding = bindStorage()
+    localStore.switch(namespace)
+    actions.boundResetFromStore()
+    storageBinding?.cancel()
+    storageBinding = bindStorage()
 
-  if (options?.mergeWithCurrent) {
-    syncChangesQueue()
-      .then(() => {
-        actions.boundMergeData(prevStore)
-        syncChanges()
-      })
-  }
+    if (options?.mergeWithCurrent) {
+      syncChangesQueue()
+        .then(() => {
+          actions.boundMergeData(prevStore)
+          resolve()
+        })
+    } else {
+      resolve()
+    }
+  })
 }
 
 export function registerStore (store, sync) {
