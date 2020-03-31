@@ -79,7 +79,7 @@ function bindStorage () {
       event.newValue &&
       JSON.parse(event.newValue) !== JSON.parse(event.oldValue)
     ) {
-      localStore.reset(JSON.parse(event.newValue))
+      localStore.switch(JSON.parse(event.newValue))
     }
 
     clearTimeout(lazy)
