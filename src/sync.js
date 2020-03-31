@@ -100,7 +100,7 @@ function remoteSyncChanges (updateAfterConflict = true) {
           }))
 
           const timestamp = appStore.getLastSyncedAt()
-          return fetch(`${syncApi}/${user.idUser}/${timestamp}`, {
+          return fetch(`${OPTIONS.syncApi}/${user.idUser}/${timestamp}`, {
               ...requestOptions,
               method: 'POST',
               body,
