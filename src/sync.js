@@ -1,6 +1,6 @@
 import 'unfetch/polyfill'
 import PQueue from 'p-queue'
-import { debounce, isEmpty, cloneDeepWith } from './utils'
+import { debounce, isEmpty, cloneDeepWith, omit } from './utils'
 import localStore from './localStore'
 import appStore from './AppStore'
 import userTxsStore from './UserTxsStore'
