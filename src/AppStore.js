@@ -53,6 +53,10 @@ class AppStore extends ReduceStore {
     return state
   }
 
+  getStoreState () {
+    return this.getState()
+  }
+
   canSyncTagsAndNotes () {
     return this.getState().syncTagsAndNotes
   }

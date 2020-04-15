@@ -143,7 +143,6 @@ class UserTagsStore extends ReduceStore {
 
     return {
       ...state,
-      tmpRemoved: omit(state?.tmpRemoved, Object.keys(items)),
       items: { ...state?.items, ...items },
     }
   }

@@ -42,7 +42,7 @@ export function initDatabase (namespace, options) {
 
 export function registerStore (store, sync) {
   store.addListener(() => {
-    localStore.store(store.key, store.getState())
+    localStore.store(store.key, store.getStoreState())
     if (sync) {
       syncChanges()
     }

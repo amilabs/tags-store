@@ -39,6 +39,10 @@ class UserInfoStore extends ReduceStore {
     return state
   }
 
+  getStoreState () {
+    return this.getState()
+  }
+
   getExportJSON () {
     const state = this.getState()
     return {
