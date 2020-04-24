@@ -71,7 +71,7 @@ function handleVisibilitychange (event) {
 
 syncChanges.retryTimeout = 0
 syncChanges.retryCount = 0
-syncChanges.retryIntervals = [ 20 * 1000, 30 * 1000, 60 * 1000, 2 * 60 * 1000 ]
+syncChanges.retryIntervals = [ 20 * 1000, 60 * 1000, 2 * 60 * 1000 ]
 
 syncChanges.stop = () => {
   document.removeEventListener('visibilitychange', handleVisibilitychange, false)
