@@ -46,20 +46,32 @@ export function syncChanges (renewalOnly = false) {
   }
 }
 
-function handleVisibilitychange () {
+function handleVisibilitychange (event) {
   if (document.hidden) {
     clearTimeout(syncChanges.retryTimeout)
     syncChanges.retryTimeout = 0
   } else if (!syncChanges.retryTimeout) {
+    if (event) {
+      syncChanges.retryCount = 0
+    }
+
+    const timeout = (
+      syncChanges.retryIntervals[ syncChanges.retryCount ] ||
+      syncChanges.retryIntervals[ syncChanges.retryIntervals.length - 1 ]
+    )
+
     syncChanges.retryTimeout = setTimeout(() => {
       syncChanges(true)
+      syncChanges.retryCount++
       syncChanges.retryTimeout = 0
       handleVisibilitychange()
-    }, 2 * 60 * 1000)
+    }, timeout)
   }
 }
 
 syncChanges.retryTimeout = 0
+syncChanges.retryCount = 0
+syncChanges.retryIntervals = [ 20 * 1000, 30 * 1000, 60 * 1000, 2 * 60 * 1000 ]
 
 syncChanges.stop = () => {
   document.removeEventListener('visibilitychange', handleVisibilitychange, false)
