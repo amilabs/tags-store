@@ -46,6 +46,33 @@ export function syncChanges (renewalOnly = false) {
   }
 }
 
+function handleVisibilitychange () {
+  if (document.hidden) {
+    clearTimeout(syncChanges.retryTimeout)
+    syncChanges.retryTimeout = 0
+  } else if (!syncChanges.retryTimeout) {
+    syncChanges.retryTimeout = setTimeout(() => {
+      syncChanges(true)
+      syncChanges.retryTimeout = 0
+      handleVisibilitychange()
+    }, 2 * 60 * 1000)
+  }
+}
+
+syncChanges.retryTimeout = 0
+
+syncChanges.stop = () => {
+  document.removeEventListener('visibilitychange', handleVisibilitychange, false)
+  clearTimeout(syncChanges.retryTimeout)
+  syncChanges.retryTimeout = 0
+}
+
+syncChanges.start = () => {
+  syncChanges.stop()
+  handleVisibilitychange()
+  document.addEventListener('visibilitychange', handleVisibilitychange, false)
+}
+
 export function syncOptions (options) {
   OPTIONS.syncApi = options?.syncApi
   OPTIONS.syncUserApi = options?.syncUserApi
