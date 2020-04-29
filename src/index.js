@@ -31,7 +31,7 @@ export function initDatabase (namespace, options) {
     if (options?.mergeWithCurrent) {
       syncChangesQueue()
         .then(() => {
-          actions.boundMergeData(prevStore)
+          actions.boundMergeData(prevStore, true)
           resolve()
         })
     } else {

@@ -1,7 +1,7 @@
 import ReduceStore from 'flux/lib/FluxReduceStore'
 import dispatcher from './dispatcher'
 import localStore from './localStore'
-import { isEmpty, omit, pickBy, mapValues } from './utils'
+import { isEmpty, isEqual, pick, omit, pickBy, mapValues } from './utils'
 import {
   CLEAR_DATABASE,
   MARK_ALL_AS_DIRTY,
@@ -147,20 +147,38 @@ class UserTxsStore extends ReduceStore {
   }
 
   handleMergeData = (state, action) => {
-    if (isEmpty(action?.payload?.userTxs?.items)) {
+    if (isEmpty(action?.payload?.data?.userTxs?.items)) {
       return state
     }
 
     const now = Date.now()
-    const items = action.payload.userTxs.items.reduce((out, item) => {
+    const isTargetPriority = action.payload.isTargetPriority
+    const items = action.payload.data.userTxs.items.reduce((out, item) => {
       const key = this.createKey(item.txHash)
-      out[key] = {
+      const currentData = state?.items?.[key]
+      const nextData = {
         txHash: item.txHash,
-        txUserNote: item.txUserNote,
-        createdTime: item.createdTime || now,
-        updatedTime: item.updatedTime || now,
-        dirty: state?.items?.[key] ? 2 : 1,
+        txUserNote: isTargetPriority ?
+          (currentData?.txUserNote || item.txUserNote) :
+          (item.txUserNote || currentData?.txUserNote),
+        createdTime: isTargetPriority ?
+          (currentData?.createdTime || item.createdTime || now) :
+          ((item.createdTime && item.updatedTime) ? item.createdTime : (currentData?.createdTime || now)),
+        updatedTime: isTargetPriority ?
+          (currentData?.updatedTime || item.updatedTime || now) :
+          ((item.createdTime && item.updatedTime) ? item.updatedTime : (currentData?.updatedTime || now)),
       }
+
+      if (!currentData) {
+        nextData.dirty = 1
+      } else if (!isEqual(
+        pick(currentData, ['txUserNote', 'createdTime', 'updatedTime']),
+        pick(nextData, ['txUserNote', 'createdTime', 'updatedTime'])
+      )) {
+        nextData.dirty = 2
+      }
+
+      out[key] = nextData
       return out
     }, {})
 

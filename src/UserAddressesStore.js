@@ -1,7 +1,7 @@
 import ReduceStore from 'flux/lib/FluxReduceStore'
 import dispatcher from './dispatcher'
 import localStore from './localStore'
-import { isEmpty, omit, pickBy, mapValues, uniqBy } from './utils'
+import { isEmpty, isEqual, pick, omit, pickBy, mapValues, uniqBy } from './utils'
 import {
   ADD_ADDRESS_TAG,
   CLEAR_DATABASE,
@@ -165,24 +165,39 @@ class UserAddressesStore extends ReduceStore {
       userTagsStore.getDispatchToken(),
     ])
 
-    if (isEmpty(action?.payload?.userAddresses?.items)) {
+    if (isEmpty(action?.payload?.data?.userAddresses?.items)) {
       return state
     }
 
     const now = Date.now()
-    const items = action.payload.userAddresses.items.reduce((out, item) => {
+    const isTargetPriority = action.payload.isTargetPriority
+    const items = action.payload.data.userAddresses.items.reduce((out, item) => {
       const key = this.createKey(item.address)
-      out[key] = {
+      const currentData = state?.items?.[key]
+      const nextData = {
         address: item.address,
-        addressTags: uniqBy([].concat(
-          state?.items?.[key]?.addressTags ?? [],
-          item.addressTags,
-        ), tag => userTagsStore.createKey(tag)),
-        addressUserNote: item.addressUserNote,
-        createdTime: item.createdTime || now,
-        updatedTime: item.updatedTime || now,
-        dirty: state?.items?.[key] ? 2 : 1,
+        addressTags: uniqBy([].concat(currentData?.addressTags ?? [], item.addressTags), tag => userTagsStore.createKey(tag)),
+        addressUserNote: isTargetPriority ?
+          (currentData?.addressUserNote || item.addressUserNote) :
+          (item.addressUserNote || currentData?.addressUserNote),
+        createdTime: isTargetPriority ?
+          (currentData?.createdTime || item.createdTime || now) :
+          ((item.createdTime && item.updatedTime) ? item.createdTime : (currentData?.createdTime || now)),
+        updatedTime: isTargetPriority ?
+          (currentData?.updatedTime || item.updatedTime || now) :
+          ((item.createdTime && item.updatedTime) ? item.updatedTime : (currentData?.updatedTime || now)),
       }
+
+      if (!currentData) {
+        nextData.dirty = 1
+      } else if (!isEqual(
+        pick(currentData, ['addressTags', 'addressUserNote', 'createdTime', 'updatedTime']),
+        pick(nextData, ['addressTags', 'addressUserNote', 'createdTime', 'updatedTime'])
+      )) {
+        nextData.dirty = 2
+      }
+
+      out[key] = nextData
       return out
     }, {})
 

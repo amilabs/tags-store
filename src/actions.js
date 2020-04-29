@@ -119,14 +119,17 @@ export const boundResetFromData = (data) => {
   dispatcher.dispatch(togglePushChanges(true))
 }
 
-export const mergeData = (data) => ({
+export const mergeData = (data, isTargetPriority) => ({
   type: MERGE_DATA,
-  payload: data,
+  payload: {
+    data,
+    isTargetPriority,
+  }
 })
 
-export const boundMergeData = (data) => {
+export const boundMergeData = (data, isTargetPriority) => {
   dispatcher.dispatch(togglePushChanges(false))
-  dispatcher.dispatch(mergeData(data))
+  dispatcher.dispatch(mergeData(data, isTargetPriority))
   dispatcher.dispatch(togglePushChanges(true))
 }
 
