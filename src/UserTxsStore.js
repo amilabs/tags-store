@@ -1,7 +1,7 @@
 import ReduceStore from 'flux/lib/FluxReduceStore'
 import dispatcher from './dispatcher'
 import localStore from './localStore'
-import { isEmpty, isEqual, pick, omit, pickBy, mapValues } from './utils'
+import { isEmpty, isEqual, pick, omit, pickBy, mapValues, differenceBy, intersectionBy } from './utils'
 import {
   CLEAR_DATABASE,
   MARK_ALL_AS_DIRTY,
