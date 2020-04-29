@@ -1,7 +1,7 @@
 import ReduceStore from 'flux/lib/FluxReduceStore'
 import dispatcher from './dispatcher'
 import localStore from './localStore'
-import { isEmpty, isEqual, pick, omit, pickBy, mapValues, uniqBy } from './utils'
+import { isEmpty, isEqual, pick, omit, pickBy, mapValues, uniqBy, differenceBy, intersectionBy } from './utils'
 import {
   ADD_ADDRESS_TAG,
   CLEAR_DATABASE,
@@ -213,28 +213,48 @@ class UserAddressesStore extends ReduceStore {
       appStore.getDispatchToken(),
     ])
 
-    const data = action.payload
+    const now = Date.now()
+    const data = action.payload?.userAddresses?.items || []
+    const prevData = Object.values(state.items || {})
+    const created = differenceBy(data, prevData, item => this.createKey(item.address))
+    const removed = differenceBy(prevData, data, item => this.createKey(item.address))
+    const updated = intersectionBy(data, prevData, item => this.createKey(item.address))
+    const create = item => ({
+      address: item.address,
+      addressTags: item.addressTags,
+      addressUserNote: item.addressUserNote,
+      createdTime: item.createdTime || now,
+      updatedTime: item.updatedTime || now,
+    })
 
-    if (data.userAddresses) {
-      const now = Date.now()
-
-      return {
-        tmpRemoved: {},
-        items: data.userAddresses.items.reduce((out, item) => {
+    return {
+      tmpRemoved: {},
+      items: {
+        ...(created.reduce((out, item) => {
           out[this.createKey(item.address)] = {
-            address: item.address,
-            addressTags: item.addressTags,
-            addressUserNote: item.addressUserNote,
-            createdTime: item.createdTime || now,
-            updatedTime: item.updatedTime || now,
+            ...create(item),
             dirty: 1,
           }
           return out
-        }, {})
-      }
-    }
+        }, {})),
 
-    return INITIAL_STATE
+        ...(updated.reduce((out, item) => {
+          out[this.createKey(item.address)] = {
+            ...create(item),
+            dirty: 2,
+          }
+          return out
+        }, {})),
+
+        ...(removed.reduce((out, item) => {
+          out[this.createKey(item.address)] = {
+            ...create(item),
+            removed: true,
+          }
+          return out
+        }, {})),
+      },
+    }
   }
 
   handleClearDatabase = () => {

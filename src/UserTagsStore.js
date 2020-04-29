@@ -152,22 +152,44 @@ class UserTagsStore extends ReduceStore {
       appStore.getDispatchToken(),
     ])
 
-    const data = action.payload
+    const data = action.payload?.userTags?.items || []
+    const prevData = Object.values(state.items || {})
+    const created = differenceBy(data, prevData, item => this.createKey(item.tagName))
+    const removed = differenceBy(prevData, data, item => this.createKey(item.tagName))
+    const updated = intersectionBy(data, prevData, item => this.createKey(item.tagName))
+    const create = item => ({
+      tagName: item.tagName,
+      tagUserNote: item.tagUserNote,
+    })
 
-    if (data.userTags) {
-      return {
-        items: data.userTags.items.reduce((out, item) => {
+    return {
+      tmpRemoved: {},
+      items: {
+        ...(created.reduce((out, item) => {
           out[this.createKey(item.tagName)] = {
-            tagName: item.tagName,
-            tagUserNote: item.tagUserNote,
+            ...create(item),
             dirty: 1,
           }
           return out
-        }, {})
-      }
-    }
+        }, {})),
 
-    return INITIAL_STATE
+        ...(updated.reduce((out, item) => {
+          out[this.createKey(item.tagName)] = {
+            ...create(item),
+            dirty: 2,
+          }
+          return out
+        }, {})),
+
+        ...(removed.reduce((out, item) => {
+          out[this.createKey(item.tagName)] = {
+            ...create(item),
+            removed: true,
+          }
+          return out
+        }, {})),
+      },
+    }
   }
 
   handleClearDatabase = () => {

@@ -197,27 +197,47 @@ class UserTxsStore extends ReduceStore {
       appStore.getDispatchToken(),
     ])
 
-    const data = action.payload
+    const now = Date.now()
+    const data = action.payload?.userTxs?.items || []
+    const prevData = Object.values(state.items || {})
+    const created = differenceBy(data, prevData, item => this.createKey(item.txHash))
+    const removed = differenceBy(prevData, data, item => this.createKey(item.txHash))
+    const updated = intersectionBy(data, prevData, item => this.createKey(item.txHash))
+    const create = item => ({
+      txHash: item.txHash,
+      txUserNote: item.txUserNote,
+      createdTime: item.createdTime || now,
+      updatedTime: item.updatedTime || now,
+    })
 
-    if (data.userTxs) {
-      const now = Date.now()
-
-      return {
-        tmpRemoved: {},
-        items: data.userTxs.items.reduce((out, item) => {
+    return {
+      tmpRemoved: {},
+      items: {
+        ...(created.reduce((out, item) => {
           out[this.createKey(item.txHash)] = {
-            txHash: item.txHash,
-            txUserNote: item.txUserNote,
-            createdTime: item.createdTime || now,
-            updatedTime: item.updatedTime || now,
+            ...create(item),
             dirty: 1,
           }
           return out
-        }, {})
-      }
-    }
+        }, {})),
 
-    return INITIAL_STATE
+        ...(updated.reduce((out, item) => {
+          out[this.createKey(item.txHash)] = {
+            ...create(item),
+            dirty: 2,
+          }
+          return out
+        }, {})),
+
+        ...(removed.reduce((out, item) => {
+          out[this.createKey(item.txHash)] = {
+            ...create(item),
+            removed: true,
+          }
+          return out
+        }, {})),
+      },
+    }
   }
 
   handleClearDatabase = () => {

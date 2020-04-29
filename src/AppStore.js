@@ -82,10 +82,11 @@ class AppStore extends ReduceStore {
   }
 
   handleResetFromData = (state) => {
-    return {
-      ...state,
-      lastSyncedAt: 1,
-    }
+    return state
+    // return {
+    //   ...state,
+    //   lastSyncedAt: 1,
+    // }
   }
 
   handleResetFromStore = () => {

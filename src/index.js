@@ -62,7 +62,6 @@ export function importStoreFromJSON (data, isMerge) {
   if (isMerge) {
     actions.boundMergeData(data)
   } else {
-    localStore.reset()
     actions.boundResetFromData(data)
   }
 

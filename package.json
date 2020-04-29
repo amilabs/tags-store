@@ -1,6 +1,6 @@
 {
   "name": "@rikishi/tags-store",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "author": "Anton Tursenev <anton@rikishi.info>",
   "license": "MIT",
   "main": "lib/index.js",
