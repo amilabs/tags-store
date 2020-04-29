@@ -58,9 +58,14 @@ export function exportStoreToJSON () {
   }
 }
 
-export function importStoreFromJSON (data) {
-  localStore.reset()
-  actions.boundResetFromData(data)
+export function importStoreFromJSON (data, isMerge) {
+  if (isMerge) {
+    actions.boundMergeData(data)
+  } else {
+    localStore.reset()
+    actions.boundResetFromData(data)
+  }
+
   syncChanges()
 }
 
