@@ -136,7 +136,11 @@ function remoteSyncChanges (updateAfterConflict = true) {
               !Array.isArray(item) &&
               (item.updatedTime || item.createdTime)
              ) {
-              return omit(item, [ 'updatedTime', 'createdTime' ])
+              return {
+                ...omit(item, [ 'updatedTime', 'createdTime' ]),
+                clientCreatedTime: item.createdTime,
+                clientUpdatedTime: item.updatedTime,
+              }
             }
           }))
 

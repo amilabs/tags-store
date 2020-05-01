@@ -307,8 +307,20 @@ class UserTxsStore extends ReduceStore {
       tmpRemoved: omit(state.tmpRemoved, keys),
       items: {
         ...state?.items,
-        ...(created || insert)?.reduce?.((out, item) => Object.assign(out, { [ this.createKey(item.txHash) ]: item }), {}),
-        ...(updated || update)?.reduce?.((out, item) => Object.assign(out, { [ this.createKey(item.txHash) ]: item }), {}),
+        ...(created || insert)?.reduce?.((out, item) => Object.assign(out, {
+          [ this.createKey(item.txHash) ]: {
+            ...item,
+            createdTime: item.clientCreatedTime || item.createdTime,
+            updatedTime: item.clientUpdatedTime || item.updatedTime,
+          }
+        }), {}),
+        ...(updated || update)?.reduce?.((out, item) => Object.assign(out, {
+          [ this.createKey(item.txHash) ]: {
+            ...item,
+            createdTime: item.clientCreatedTime || item.createdTime,
+            updatedTime: item.clientUpdatedTime || item.updatedTime,
+          }
+        }), {}),
       },
     }
 

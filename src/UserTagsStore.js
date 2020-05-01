@@ -282,8 +282,12 @@ class UserTagsStore extends ReduceStore {
       ...state,
       items: {
         ...state?.items,
-        ...(created || insert)?.reduce?.((out, item) => Object.assign(out, { [ this.createKey(item.tagName) ]: item }), {}),
-        ...(updated || update)?.reduce?.((out, item) => Object.assign(out, { [ this.createKey(item.tagName) ]: item }), {}),
+        ...(created || insert)?.reduce?.((out, item) => Object.assign(out, {
+          [ this.createKey(item.tagName) ]: item
+        }), {}),
+        ...(updated || update)?.reduce?.((out, item) => Object.assign(out, {
+          [ this.createKey(item.tagName) ]: item
+        }), {}),
       },
     }
 
