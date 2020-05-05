@@ -23,6 +23,18 @@ export function initDatabase (namespace, options) {
       prevStore = exportStoreToJSON()
     }
 
+    if (options?.descriptors?.userAddresses) {
+      userAddressesStore.setDescriptor(options?.descriptors?.userAddresses)
+    }
+
+    if (options?.descriptors?.userTxs) {
+      userTxsStore.setDescriptor(options?.descriptors?.userTxs)
+    }
+
+    if (options?.descriptors?.userTags) {
+      userTagsStore.setDescriptor(options?.descriptors?.userTags)
+    }
+
     localStore.switch(namespace)
     actions.boundResetFromStore()
     storageBinding?.cancel()

@@ -9,3 +9,12 @@ export { default as debounce } from 'lodash/debounce'
 export { default as cloneDeepWith } from 'lodash/cloneDeepWith'
 export { default as differenceBy } from 'lodash/differenceBy'
 export { default as intersectionBy } from 'lodash/intersectionBy'
+
+export function validate (data, constraints = {}) {
+  for (const name in data) {
+    if (!constraints[name]?.(data[name], data)) {
+      return false
+    }
+  }
+  return true
+}

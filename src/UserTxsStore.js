@@ -1,7 +1,7 @@
 import ReduceStore from 'flux/lib/FluxReduceStore'
 import dispatcher from './dispatcher'
 import localStore from './localStore'
-import { isEmpty, isEqual, pick, omit, pickBy, mapValues, differenceBy, intersectionBy } from './utils'
+import { isEmpty, isEqual, pick, omit, pickBy, mapValues, differenceBy, intersectionBy, validate } from './utils'
 import {
   CLEAR_DATABASE,
   MARK_ALL_AS_DIRTY,
@@ -42,6 +42,10 @@ class UserTxsStore extends ReduceStore {
 
   createKey (data) {
     return String(data).toLowerCase()
+  }
+
+  setDescriptor (data) {
+    this.descriptor = data
   }
 
   getInitialState () {
@@ -153,7 +157,7 @@ class UserTxsStore extends ReduceStore {
 
     const now = Date.now()
     const isTargetPriority = action.payload.isTargetPriority
-    const items = action.payload.data.userTxs.items.reduce((out, item) => {
+    let items = action.payload.data.userTxs.items.reduce((out, item) => {
       const key = this.createKey(item.txHash)
       const currentData = state?.items?.[key]
       const nextData = {
@@ -182,6 +186,15 @@ class UserTxsStore extends ReduceStore {
       return out
     }, {})
 
+    if (this.descriptor) {
+      items = Object.values(items)
+        .filter(item => validate(item, this.descriptor))
+        .reduce((out, item) => {
+          out[this.createKey(item.txHash)] = item
+          return out
+        }, {})
+    }
+
     return {
       ...state,
       tmpRemoved: omit(state?.tmpRemoved, Object.keys(items)),
@@ -197,12 +210,16 @@ class UserTxsStore extends ReduceStore {
       appStore.getDispatchToken(),
     ])
 
-    const now = Date.now()
-    const data = action.payload?.userTxs?.items || []
+    let data = action.payload?.userTxs?.items || []
+    if (this.descriptor) {
+      data = data.filter(item => validate(item, this.descriptor))
+    }
+
     const prevData = Object.values(state.items || {})
     const created = differenceBy(data, prevData, item => this.createKey(item.txHash))
     const removed = differenceBy(prevData, data, item => this.createKey(item.txHash))
     const updated = intersectionBy(data, prevData, item => this.createKey(item.txHash))
+    const now = Date.now()
     const create = item => ({
       txHash: item.txHash,
       txUserNote: item.txUserNote,

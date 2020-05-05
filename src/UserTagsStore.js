@@ -1,7 +1,7 @@
 import ReduceStore from 'flux/lib/FluxReduceStore'
 import localStore from './localStore'
 import dispatcher from './dispatcher'
-import { isEmpty, omit, pickBy, mapValues, differenceBy, intersectionBy } from './utils'
+import { isEmpty, omit, pickBy, mapValues, differenceBy, intersectionBy, validate } from './utils'
 import {
   ADD_ADDRESS_TAG,
   CLEAR_DATABASE,
@@ -41,6 +41,10 @@ class UserTagsStore extends ReduceStore {
 
   createKey (data) {
     return String(data).toLowerCase()
+  }
+
+  setDescriptor (data) {
+    this.descriptor = data
   }
 
   getInitialState () {
@@ -131,7 +135,7 @@ class UserTagsStore extends ReduceStore {
       return state
     }
 
-    const items = action.payload.data.userTags.items.reduce((out, item) => {
+    let items = action.payload.data.userTags.items.reduce((out, item) => {
       const key = this.createKey(item.tagName)
       out[key] = {
         tagName: item.tagName,
@@ -140,6 +144,15 @@ class UserTagsStore extends ReduceStore {
       }
       return out
     }, {})
+
+    if (this.descriptor) {
+      items = Object.values(items)
+        .filter(item => validate(item, this.descriptor))
+        .reduce((out, item) => {
+          out[this.createKey(item.tagName)] = item
+          return out
+        }, {})
+    }
 
     return {
       ...state,
@@ -152,7 +165,11 @@ class UserTagsStore extends ReduceStore {
       appStore.getDispatchToken(),
     ])
 
-    const data = action.payload?.userTags?.items || []
+    let data = action.payload?.userTags?.items || []
+    if (this.descriptor) {
+      data = data.filter(item => validate(item, this.descriptor))
+    }
+
     const prevData = Object.values(state.items || {})
     const created = differenceBy(data, prevData, item => this.createKey(item.tagName))
     const removed = differenceBy(prevData, data, item => this.createKey(item.tagName))

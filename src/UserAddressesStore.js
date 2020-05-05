@@ -1,7 +1,7 @@
 import ReduceStore from 'flux/lib/FluxReduceStore'
 import dispatcher from './dispatcher'
 import localStore from './localStore'
-import { isEmpty, isEqual, pick, omit, pickBy, mapValues, uniqBy, differenceBy, intersectionBy } from './utils'
+import { isEmpty, isEqual, pick, omit, pickBy, mapValues, uniqBy, differenceBy, intersectionBy, validate } from './utils'
 import {
   ADD_ADDRESS_TAG,
   CLEAR_DATABASE,
@@ -47,6 +47,10 @@ class UserAddressesStore extends ReduceStore {
 
   createKey (data) {
     return String(data).toLowerCase()
+  }
+
+  setDescriptor (data) {
+    this.descriptor = data
   }
 
   getInitialState () {
@@ -171,7 +175,7 @@ class UserAddressesStore extends ReduceStore {
 
     const now = Date.now()
     const isTargetPriority = action.payload.isTargetPriority
-    const items = action.payload.data.userAddresses.items.reduce((out, item) => {
+    let items = action.payload.data.userAddresses.items.reduce((out, item) => {
       const key = this.createKey(item.address)
       const currentData = state?.items?.[key]
       const nextData = {
@@ -201,6 +205,15 @@ class UserAddressesStore extends ReduceStore {
       return out
     }, {})
 
+    if (this.descriptor) {
+      items = Object.values(items)
+        .filter(item => validate(item, this.descriptor))
+        .reduce((out, item) => {
+          out[this.createKey(item.address)] = item
+          return out
+        }, {})
+    }
+
     return {
       ...state,
       tmpRemoved: omit(state?.tmpRemoved, Object.keys(items)),
@@ -213,12 +226,16 @@ class UserAddressesStore extends ReduceStore {
       appStore.getDispatchToken(),
     ])
 
-    const now = Date.now()
-    const data = action.payload?.userAddresses?.items || []
+    let data = action.payload?.userAddresses?.items || []
+    if (this.descriptor) {
+      data = data.filter(item => validate(item, this.descriptor))
+    }
+
     const prevData = Object.values(state.items || {})
     const created = differenceBy(data, prevData, item => this.createKey(item.address))
     const removed = differenceBy(prevData, data, item => this.createKey(item.address))
     const updated = intersectionBy(data, prevData, item => this.createKey(item.address))
+    const now = Date.now()
     const create = item => ({
       address: item.address,
       addressTags: item.addressTags,
