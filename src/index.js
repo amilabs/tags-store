@@ -120,6 +120,7 @@ function bindStorage () {
 
 export {
   syncChanges,
+  syncChangesQueue,
   actions,
   dispatcher,
   localStore,
