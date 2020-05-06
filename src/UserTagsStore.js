@@ -180,7 +180,6 @@ class UserTagsStore extends ReduceStore {
     })
 
     return {
-      tmpRemoved: {},
       items: {
         ...(created.reduce((out, item) => {
           out[this.createKey(item.tagName)] = {
@@ -288,7 +287,7 @@ class UserTagsStore extends ReduceStore {
     } = action.payload.userTag
 
     if (!isEmpty(deleted) || !isEmpty(remove)) {
-      const keys = (deleted || remove).map(item => this.createKey(item.tagName))
+      const keys = (deleted || remove).map(item => this.createKey(item?.tagName ?? item))
       state = {
         ...state,
         items: omit(state.items, keys)

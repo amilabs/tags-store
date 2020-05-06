@@ -22,7 +22,7 @@ export default {
     {
       file: pkg.module,
       format: 'cjs',
-      sourcemap: true,
+      sourcemap: false,
     }
   ],
 }
