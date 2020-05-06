@@ -224,9 +224,18 @@ class UserAddressesStore extends ReduceStore {
   handleResetFromData = (state, action) => {
     this.getDispatcher().waitFor([
       appStore.getDispatchToken(),
+      userTagsStore.getDispatchToken(),
     ])
 
     let data = action.payload?.userAddresses?.items || []
+    data = Array.isArray(data) ? data : []
+
+    data = data.map(item => ({
+      ...item,
+      addressTags: Array.isArray(item.addressTags) ?
+        item.addressTags.filter(item => userTagsStore.hasTag(item)) : [],
+    }))
+
     if (this.descriptor) {
       data = data.filter(item => validate(item, this.descriptor))
     }

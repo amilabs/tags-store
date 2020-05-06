@@ -83,6 +83,12 @@ class UserTagsStore extends ReduceStore {
     return Object.values(state.items).find(item => this.createKey(item.tagName) === key)
   }
 
+  hasTag (key) {
+    key = this.createKey(key)
+    const state = this.getState()
+    return Boolean(state.items[key])
+  }
+
   getChanges (/* timestamp */) {
     const state = this.getState()
     const remove = Object.values(
@@ -166,6 +172,7 @@ class UserTagsStore extends ReduceStore {
     ])
 
     let data = action.payload?.userTags?.items || []
+    data = Array.isArray(data) ? data : []
     if (this.descriptor) {
       data = data.filter(item => validate(item, this.descriptor))
     }

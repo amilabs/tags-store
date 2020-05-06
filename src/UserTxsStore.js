@@ -211,6 +211,7 @@ class UserTxsStore extends ReduceStore {
     ])
 
     let data = action.payload?.userTxs?.items || []
+    data = Array.isArray(data) ? data : []
     if (this.descriptor) {
       data = data.filter(item => validate(item, this.descriptor))
     }
