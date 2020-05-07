@@ -151,13 +151,16 @@ class UserTxsStore extends ReduceStore {
   }
 
   handleMergeData = (state, action) => {
-    if (isEmpty(action?.payload?.data?.userTxs?.items)) {
+    let data = action?.payload?.data?.userTxs?.items || []
+    data = Array.isArray(data) ? data : []
+
+    if (isEmpty(data)) {
       return state
     }
 
     const now = Date.now()
     const isTargetPriority = action.payload.isTargetPriority
-    let items = action.payload.data.userTxs.items.reduce((out, item) => {
+    let items = data.reduce((out, item) => {
       const key = this.createKey(item.txHash)
       const currentData = state?.items?.[key]
       const nextData = {

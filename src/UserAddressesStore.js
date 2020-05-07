@@ -169,13 +169,16 @@ class UserAddressesStore extends ReduceStore {
       userTagsStore.getDispatchToken(),
     ])
 
-    if (isEmpty(action?.payload?.data?.userAddresses?.items)) {
+    let data = action?.payload?.data?.userAddresses?.items || []
+    data = Array.isArray(data) ? data : []
+
+    if (isEmpty(data)) {
       return state
     }
 
     const now = Date.now()
     const isTargetPriority = action.payload.isTargetPriority
-    let items = action.payload.data.userAddresses.items.reduce((out, item) => {
+    let items = data.reduce((out, item) => {
       const key = this.createKey(item.address)
       const currentData = state?.items?.[key]
       const nextData = {
@@ -204,6 +207,12 @@ class UserAddressesStore extends ReduceStore {
       out[key] = nextData
       return out
     }, {})
+
+    items = items.map(item => ({
+      ...item,
+      addressTags: Array.isArray(item.addressTags) ?
+        item.addressTags.filter(item => userTagsStore.hasTag(item)) : [],
+    }))
 
     if (this.descriptor) {
       items = Object.values(items)

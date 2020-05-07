@@ -139,11 +139,14 @@ class UserTagsStore extends ReduceStore {
   }
 
   handleMergeData = (state, action) => {
-    if (isEmpty(action?.payload?.data?.userTags?.items)) {
+    let data = action?.payload?.data?.userTags?.items || []
+    data = Array.isArray(data) ? data : []
+
+    if (isEmpty(data)) {
       return state
     }
 
-    let items = action.payload.data.userTags.items.reduce((out, item) => {
+    let items = data.reduce((out, item) => {
       const key = this.createKey(item.tagName)
       out[key] = {
         tagName: item.tagName,

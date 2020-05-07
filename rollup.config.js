@@ -15,7 +15,7 @@ export default {
     resolve({ extensions, browser: true, preferBuiltins: true }),
     commonjs({ exclude: 'src/**' }),
     babel({ extensions, exclude: 'node_modules/**' }),
-    terser(),
+    // terser(),
     analyze({ limit: 5 }),
   ],
   output: [
