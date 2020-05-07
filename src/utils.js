@@ -12,7 +12,7 @@ export { default as intersectionBy } from 'lodash/intersectionBy'
 
 export function validate (data, constraints = {}) {
   for (const name in data) {
-    if (!constraints[name]?.(data[name], data)) {
+    if (constraints[name] && !constraints[name]?.(data[name], data)) {
       return false
     }
   }
