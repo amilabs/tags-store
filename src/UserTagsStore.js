@@ -73,6 +73,7 @@ class UserTagsStore extends ReduceStore {
   getTags () {
     const state = this.getState()
     return Object.values(state.items)
+      .filter(item => !item.removed)
       .map(item => item.tagName)
       .sort()
   }
@@ -80,13 +81,14 @@ class UserTagsStore extends ReduceStore {
   getTag (key) {
     key = this.createKey(key)
     const state = this.getState()
-    return Object.values(state.items).find(item => this.createKey(item.tagName) === key)
+    const tag = state.items[key]
+    return (tag && !tag.removed) ? tag : undefined
   }
 
   hasTag (key) {
     key = this.createKey(key)
     const state = this.getState()
-    return Boolean(state.items[key])
+    return Boolean(state.items[key] && !state.items[key].removed)
   }
 
   getChanges (/* timestamp */) {
