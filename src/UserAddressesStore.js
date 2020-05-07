@@ -208,14 +208,13 @@ class UserAddressesStore extends ReduceStore {
       return out
     }, {})
 
-    items = items.map(item => ({
-      ...item,
-      addressTags: Array.isArray(item.addressTags) ?
-        item.addressTags.filter(item => userTagsStore.hasTag(item)) : [],
-    }))
-
     if (this.descriptor) {
       items = Object.values(items)
+        .map(item => ({
+          ...item,
+          addressTags: Array.isArray(item.addressTags) ?
+            item.addressTags.filter(item => userTagsStore.hasTag(item)) : [],
+        }))
         .filter(item => validate(item, this.descriptor))
         .reduce((out, item) => {
           out[this.createKey(item.address)] = item
