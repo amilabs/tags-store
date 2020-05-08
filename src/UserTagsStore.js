@@ -70,6 +70,13 @@ class UserTagsStore extends ReduceStore {
     }
   }
 
+  getItems () {
+    const state = this.getState()
+    return [].concat(
+      Object.values(state?.items ?? {}).filter(item => !item.removed),
+    )
+  }
+
   getTags () {
     const state = this.getState()
     return Object.values(state.items)
