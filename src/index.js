@@ -93,6 +93,9 @@ export function differenceStore (target, value) {
     (a, b) => (a.address === b.address)
   ).length
 
+  const valueAddresses = get(value, 'userAddresses.items', []).filter(item => !isEmpty(item.addressTags))
+  const targetAddresses = get(target, 'userAddresses.items', []).filter(item => !isEmpty(item.addressTags))
+
   let tags = 0
   for (let i = 0; i < valueAddresses.length; i++) {
     const valueAddress = valueAddresses[i].address

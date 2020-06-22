@@ -1,5 +1,5 @@
 {
-  "name": "tags-store",
+  "name": "@rikishi/tags-store",
   "version": "1.2.9",
   "author": "Anton Tursenev <anton@rikishi.info>",
   "license": "MIT",
