@@ -8,7 +8,7 @@ import userTxsStore from './UserTxsStore'
 import loggerStore from './LoggerStore'
 import appStore from './AppStore'
 import { syncChanges, syncOptions, syncChangesQueue } from './sync'
-
+import { isEmpty, get, differenceWith, difference } from './utils'
 
 let storageBinding
 
@@ -70,14 +70,46 @@ export function exportStoreToJSON () {
   }
 }
 
-export function importStoreFromJSON (data, isMerge) {
+export function importStoreFromJSON (data, isMerge, isTargetPriority) {
   if (isMerge) {
-    actions.boundMergeData(data)
+    actions.boundMergeData(data, isTargetPriority)
   } else {
     actions.boundResetFromData(data)
   }
 
   syncChanges()
+}
+
+export function differenceStore (target, value) {
+  const txNotes = differenceWith(
+    get(value, 'userTxs.items', []).filter(item => item.txUserNote),
+    get(target, 'userTxs.items', []).filter(item => item.txUserNote),
+    (a, b) => (a.txHash === b.txHash)
+  ).length
+
+  const addressNotes = differenceWith(
+    get(value, 'userAddresses.items', []).filter(item => item.addressUserNote),
+    get(target, 'userAddresses.items', []).filter(item => item.addressUserNote),
+    (a, b) => (a.address === b.address)
+  ).length
+
+  let tags = 0
+  for (let i = 0; i < valueAddresses.length; i++) {
+    const valueAddress = valueAddresses[i].address
+    const valueTags = valueAddresses[i].addressTags
+    const targetAddress = targetAddresses.find(item => item.address === valueAddress)
+    if (!targetAddress) {
+      tags += valueTags.length
+    } else {
+      tags += difference(valueTags, targetAddress.addressTags).length
+    }
+  }
+
+  return (txNotes || addressNotes || tags) ? {
+    txNotes,
+    addressNotes,
+    tags,
+  } : null
 }
 
 registerStore(appStore)
