@@ -155,8 +155,8 @@ function remoteSyncChanges (updateAfterConflict = true) {
                 if (updateAfterConflict) {
                   return Promise.resolve(response.json())
                     .then(data => {
-                      const collection = data?.info?.details?.collection
-                      const shouldNotExists = data?.info?.details?.shouldNotExists
+                      const collection = data?.info?.collection
+                      const shouldNotExists = data?.info?.shouldNotExists
                       if (collection && !isEmpty(shouldNotExists)) {
                         actions.boundUpdateDirtyStatus(1, 2, {
                           ...(collection === 'userAddress' ? {
