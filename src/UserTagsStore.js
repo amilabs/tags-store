@@ -345,13 +345,15 @@ class UserTagsStore extends ReduceStore {
   }
 
   handleUpdateDirtyStatus = (state, action) => {
-    const tags = action?.payload?.tags ?? []
+    let tags = action?.payload?.tags ?? []
     const from = action?.payload?.from
     const to = action?.payload?.to
 
     if (isEmpty(tags) || !from || !to) {
       return state
     }
+
+    tags = tags.map(item => this.createKey(item))
 
     const items = {}
     for (const key in state.items) {

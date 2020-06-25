@@ -524,13 +524,15 @@ class UserAddressesStore extends ReduceStore {
   }
 
   handleUpdateDirtyStatus = (state, action) => {
-    const addresses = action?.payload?.addresses ?? []
+    let addresses = action?.payload?.addresses ?? []
     const from = action?.payload?.from
     const to = action?.payload?.to
 
     if (isEmpty(addresses) || !from || !to) {
       return state
     }
+
+    addresses = addresses.map(item => this.createKey(item))
 
     const items = {}
     for (const key in state.items) {

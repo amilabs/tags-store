@@ -410,13 +410,15 @@ class UserTxsStore extends ReduceStore {
   }
 
   handleUpdateDirtyStatus = (state, action) => {
-    const txs = action?.payload?.txs ?? []
+    let txs = action?.payload?.txs ?? []
     const from = action?.payload?.from
     const to = action?.payload?.to
 
     if (isEmpty(txs) || !from || !to) {
       return state
     }
+
+    txs = txs.map(item => this.createKey(item))
 
     const items = {}
     for (const key in state.items) {
