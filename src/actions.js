@@ -8,6 +8,7 @@ export const REMOVE_ADDRESS = 'address_remove'
 export const REMOVE_ADDRESS_TAG = 'address_tag_remove'
 export const REMOVE_TX = 'remove_tx'
 export const REPLACE_ADDRESS_TAGS_AND_NOTE = 'address_tags_and_note_replace'
+export const REPLACE_ADDRESS_WATCH = 'replace_address_watch'
 export const REPLACE_TX_NOTE = 'replace_tx_note'
 export const RESET_FROM_DATA = 'reset_from_data'
 export const RESET_FROM_STORE = 'reset_from_store'
@@ -44,6 +45,15 @@ export const replaceAddressTagsAndNote = (address, data) => ({
 
 export const boundReplaceAddressTagsAndNote = (address, data) => (
   dispatcher.dispatch(replaceAddressTagsAndNote(address, data))
+)
+
+export const replaceAddressWatch = (address, data) => ({
+  type: REPLACE_ADDRESS_WATCH,
+  payload: { address, isWatchingDisabled: data.isWatchingDisabled, watching: data.watching, watchingChannels: data.watchingChannels },
+})
+
+export const boundReplaceAddressWatch = (address, data) => (
+  dispatcher.dispatch(replaceAddressWatch(address, data))
 )
 
 export const addAddressTag = (address, tag) => ({

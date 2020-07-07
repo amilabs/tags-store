@@ -1,7 +1,7 @@
 import ReduceStore from 'flux/lib/FluxReduceStore'
 import dispatcher from './dispatcher'
 import localStore from './localStore'
-import { isEmpty, isEqual, pick, omit, pickBy, mapValues, uniqBy, differenceBy, intersectionBy, validate } from './utils'
+import { isEmpty, isEqual, pick, omit, pickBy, mapValues, uniqBy, differenceBy, intersectionBy, validate, compact } from './utils'
 import {
   ADD_ADDRESS_TAG,
   CLEAR_DATABASE,
@@ -14,6 +14,7 @@ import {
   SYNC_CHANGES,
   UPDATE_DIRTY_STATUS,
   REPLACE_ADDRESS_TAGS_AND_NOTE,
+  REPLACE_ADDRESS_WATCH,
 } from './actions'
 import appStore from './AppStore'
 import userTagsStore from './UserTagsStore'
@@ -38,6 +39,7 @@ class UserAddressesStore extends ReduceStore {
       [REMOVE_ADDRESS_TAG]: this.handleRemoveAddressTag,
       [REMOVE_ADDRESS]: this.handleRemoveAddress,
       [REPLACE_ADDRESS_TAGS_AND_NOTE]: this.handleReplaceAddressTagsAndNote,
+      [REPLACE_ADDRESS_WATCH]: this.handleReplaceAddressWatch,
       [RESET_FROM_DATA]: this.handleResetFromData,
       [RESET_FROM_STORE]: this.handleResetFromStore,
       [SYNC_CHANGES]: this.handleSyncChanges,
@@ -47,6 +49,19 @@ class UserAddressesStore extends ReduceStore {
 
   createKey (data) {
     return String(data).toLowerCase()
+  }
+
+  validateValue (item) {
+    return {
+      address: item.address,
+      addressTags: Array.isArray(item.addressTags) ? item.addressTags : [],
+      addressUserNote: String(item.addressUserNote || ''),
+      isWatchingDisabled: Boolean(item.isWatchingDisabled),
+      watching: Array.isArray(item.watching) ? item.watching : [],
+      watchingChannels: Array.isArray(item.watchingChannels) ? item.watchingChannels : [],
+      createdTime: item.createdTime,
+      updatedTime: item.updatedTime,
+    }
   }
 
   setDescriptor (data) {
@@ -68,13 +83,7 @@ class UserAddressesStore extends ReduceStore {
       userAddresses: {
         items: Object.values(state.items)
           .filter(item => !item.removed)
-          .map(item => ({
-            address: item.address,
-            addressTags: item.addressTags,
-            addressUserNote: item.addressUserNote,
-            createdTime: item.createdTime,
-            updatedTime: item.updatedTime,
-          }))
+          .map(item => this.validateValue(item))
       }
     }
   }
@@ -97,6 +106,36 @@ class UserAddressesStore extends ReduceStore {
     const state = this.getState()
     const data = state?.items?.[ this.createKey(address) ]
     return data && !data.removed && data.addressTags || []
+  }
+
+  getAddressWatch (address) {
+    const state = this.getState()
+    const data = state?.items?.[ this.createKey(address) ]
+    return data && !data.removed && {
+      isWatchingDisabled: !!data.isWatchingDisabled,
+      watching: Array.isArray(data.watching) ? data.watching : [],
+      watchingChannels: Array.isArray(data.watchingChannels) ? data.watchingChannels : [],
+    } || {
+      isWatchingDisabled: false,
+      watching: [],
+      watchingChannels: [],
+    }
+  }
+
+  getItemStatus (address) {
+    const state = this.getState()
+    const data = state?.items?.[ this.createKey(address) ] || {}
+    return {
+      updatedTime: data.updatedTime || 0,
+      isInserted: !data.removed && data.dirty === 1,
+      isUpdated: !data.removed && data.dirty === 2,
+      isRemoved: !!data.removed,
+      isWatching: Boolean(
+        !data.isWatchingDisabled &&
+        !isEmpty(data.watching) &&
+        !isEmpty(data.watchingChannels)
+      ),
+    }
   }
 
   getAllAddressTagsCount () {
@@ -122,25 +161,13 @@ class UserAddressesStore extends ReduceStore {
       mapValues(pickBy(state.items, item => (
         item.dirty === 1 &&
         !item.removed
-      )), item => ({
-        address: item.address,
-        addressTags: item.addressTags,
-        addressUserNote: item.addressUserNote,
-        createdTime: item.createdTime,
-        updatedTime: item.updatedTime,
-      }))
+      )), item => this.validateValue(item))
     )
     const update = Object.values(
       mapValues(pickBy(state.items, item => (
         item.dirty === 2 &&
         !item.removed
-      )), item => ({
-        address: item.address,
-        addressTags: item.addressTags,
-        addressUserNote: item.addressUserNote,
-        createdTime: item.createdTime,
-        updatedTime: item.updatedTime,
-      }))
+      )), item => this.validateValue(item))
     )
 
     if (isEmpty(remove) && isEmpty(insert) && isEmpty(update)) {
@@ -184,9 +211,10 @@ class UserAddressesStore extends ReduceStore {
       const nextData = {
         address: item.address,
         addressTags: uniqBy([].concat(currentData?.addressTags ?? [], item.addressTags), tag => userTagsStore.createKey(tag)),
-        addressUserNote: isTargetPriority ?
-          (currentData?.addressUserNote || item.addressUserNote) :
-          (item.addressUserNote || currentData?.addressUserNote),
+        addressUserNote: isTargetPriority ? (currentData?.addressUserNote || item.addressUserNote) : (item.addressUserNote || currentData?.addressUserNote),
+        isWatchingDisabled: isTargetPriority ? (currentData?.isWatchingDisabled ?? item.isWatchingDisabled) : (item?.isWatchingDisabled ?? currentData?.isWatchingDisabled),
+        watching: isTargetPriority ? (currentData?.watching || item.watching) : (item.watching || currentData?.watching),
+        watchingChannels: isTargetPriority ? (currentData?.watchingChannels || item.watchingChannels) : (item.watchingChannels || currentData?.watchingChannels),
         createdTime: isTargetPriority ?
           (currentData?.createdTime || item.createdTime || now) :
           ((item.createdTime && item.updatedTime) ? item.createdTime : (currentData?.createdTime || now)),
@@ -198,8 +226,8 @@ class UserAddressesStore extends ReduceStore {
       if (!currentData) {
         nextData.dirty = 1
       } else if (!isEqual(
-        pick(currentData, ['addressTags', 'addressUserNote', 'createdTime', 'updatedTime']),
-        pick(nextData, ['addressTags', 'addressUserNote', 'createdTime', 'updatedTime'])
+        pick(currentData, ['addressTags', 'addressUserNote', 'isWatchingDisabled', 'watching', 'watchingChannels', 'createdTime', 'updatedTime']),
+        pick(nextData, ['addressTags', 'addressUserNote', 'isWatchingDisabled', 'watching', 'watchingChannels', 'createdTime', 'updatedTime'])
       )) {
         nextData.dirty = 2
       }
@@ -254,9 +282,7 @@ class UserAddressesStore extends ReduceStore {
     const updated = intersectionBy(data, prevData, item => this.createKey(item.address))
     const now = Date.now()
     const create = item => ({
-      address: item.address,
-      addressTags: item.addressTags,
-      addressUserNote: item.addressUserNote,
+      ...this.validateValue(item),
       createdTime: item.createdTime || now,
       updatedTime: item.updatedTime || now,
     })
@@ -317,7 +343,14 @@ class UserAddressesStore extends ReduceStore {
     let addressTags = prevData?.addressTags ?? []
     addressTags = addressTags.filter(item => userTagsStore.createKey(item) !== keyTag)
 
-    if (prevData && isEmpty(addressTags) && isEmpty(prevData.addressUserNote)) {
+    if (
+      prevData &&
+      isEmpty(addressTags) &&
+      isEmpty(prevData.addressUserNote) &&
+      isEmpty(prevData.isWatchingDisabled) &&
+      isEmpty(prevData.watching) &&
+      isEmpty(prevData.watchingChannels)
+    ) {
       const item = {
         createdTime: now,
         ...prevData,
@@ -401,23 +434,38 @@ class UserAddressesStore extends ReduceStore {
         return state
       }
 
-      const item = {
-        createdTime: now,
-        ...prevData,
-        addressTags,
-        addressUserNote: data.note,
-        address: data.address,
-        removed: true,
-        updatedTime: now,
-      }
+      if (
+        isEmpty(prevData.isWatchingDisabled) &&
+        isEmpty(prevData.watching) &&
+        isEmpty(prevData.watchingChannels)
+      ) {
+        const item = {
+          createdTime: now,
+          ...prevData,
+          addressTags,
+          addressUserNote: data.note,
+          address: data.address,
+          removed: true,
+          updatedTime: now,
+        }
 
-      return {
-        ...state,
-        tmpRemoved: { ...state?.tmpRemoved, [ keyAddress ]: item },
-        items: prevData?.dirty === 1 ?
-          omit(state.items, [ keyAddress ]) :
-          { ...state?.items, [ keyAddress ]: item },
+        return {
+          ...state,
+          tmpRemoved: { ...state?.tmpRemoved, [ keyAddress ]: item },
+          items: prevData?.dirty === 1 ?
+            omit(state.items, [ keyAddress ]) :
+            { ...state?.items, [ keyAddress ]: item },
+        }
       }
+    }
+
+    if (
+      prevData &&
+      !prevData.removed &&
+      prevData.addressUserNote === data.note &&
+      isEqual(prevData.addressTags, addressTags)
+    ) {
+      return state
     }
 
     const item = {
@@ -425,6 +473,79 @@ class UserAddressesStore extends ReduceStore {
       ...prevData,
       addressTags,
       addressUserNote: data.note,
+      address: data.address,
+      dirty: prevData ? (prevData.dirty || 2) : 1,
+      removed: false,
+      updatedTime: now,
+    }
+
+    return {
+      ...state,
+      tmpRemoved: omit(state?.tmpRemoved, [ keyAddress ]),
+      items: { ...state?.items, [ keyAddress ]: item },
+    }
+  }
+
+  handleReplaceAddressWatch = (state, action) => {
+    const data = action.payload
+    const keyAddress = this.createKey(data.address)
+    const isWatchingDisabled = Boolean(data.isWatchingDisabled)
+    const watching = Array.isArray(data.watching) ? compact(data.watching) : []
+    const watchingChannels = Array.isArray(data.watchingChannels) ? compact(data.watchingChannels) : []
+    const now = Date.now()
+    let prevData = state?.items?.[keyAddress]
+    prevData = prevData && !prevData.removed ? prevData : undefined
+
+    if (
+      isEmpty(isWatchingDisabled) &&
+      isEmpty(watching) &&
+      isEmpty(watchingChannels)
+    ) {
+      if (!prevData) {
+        return state
+      }
+
+      if (
+        isEmpty(prevData.addressTags) &&
+        isEmpty(prevData.addressUserNote)
+      ) {
+        const item = {
+          createdTime: now,
+          ...prevData,
+          isWatchingDisabled,
+          watching,
+          watchingChannels,
+          address: data.address,
+          removed: true,
+          updatedTime: now,
+        }
+
+        return {
+          ...state,
+          tmpRemoved: { ...state?.tmpRemoved, [ keyAddress ]: item },
+          items: prevData?.dirty === 1 ?
+            omit(state.items, [ keyAddress ]) :
+            { ...state?.items, [ keyAddress ]: item },
+        }
+      }
+    }
+
+    if (
+      prevData &&
+      !prevData.removed &&
+      prevData.isWatchingDisabled === isWatchingDisabled &&
+      isEqual(prevData.watching, watching) &&
+      isEqual(prevData.watchingChannels, watchingChannels)
+    ) {
+      return state
+    }
+
+    const item = {
+      createdTime: now,
+      ...prevData,
+      isWatchingDisabled,
+      watching,
+      watchingChannels,
       address: data.address,
       dirty: prevData ? (prevData.dirty || 2) : 1,
       removed: false,

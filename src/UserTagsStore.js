@@ -273,6 +273,14 @@ class UserTagsStore extends ReduceStore {
       let prevData = state?.items?.[key]
       prevData = prevData && !prevData.removed ? prevData : undefined
 
+      if (
+        prevData &&
+        !prevData.removed &&
+        prevData.tagName === tagName
+      ) {
+        return out
+      }
+
       out[key] = {
         tagName,
         tagUserNote: undefined,
@@ -281,6 +289,10 @@ class UserTagsStore extends ReduceStore {
       }
       return out
     }, {})
+
+    if (isEmpty(tags)) {
+      return state
+    }
 
     return {
       ...state,
