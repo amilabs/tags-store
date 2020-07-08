@@ -18,6 +18,7 @@ export const TOGGLE_SHOW_DIALOG_HELP = 'toggle_show_dialog_help'
 export const TOGGLE_SYNC_TAGS_AND_NOTES = 'toggle_sync_tags_and_notes'
 export const UPDATE_DIRTY_STATUS = 'update_dirty_status'
 export const UPDATE_LAST_SYNC_TIME = 'update_last_sync_time'
+export const UPDATE_NOTIFICATION_CHANNELS = 'update_notification_channels'
 export const UPDATE_USERNAME = 'userinfo_username_update'
 
 export const replaceTxNote = (txHash, note) => ({
@@ -201,4 +202,13 @@ export const toggleSyncTagsAndNotes = (value) => ({
 
 export const boundToggleSyncTagsAndNotes = (value) => (
   dispatcher.dispatch(toggleSyncTagsAndNotes(value))
+)
+
+export const updateNotificationChannels = (value) => ({
+  type: UPDATE_NOTIFICATION_CHANNELS,
+  payload: value,
+})
+
+export const boundUpdateNotificationChannels = (value) => (
+  dispatcher.dispatch(updateNotificationChannels(value))
 )

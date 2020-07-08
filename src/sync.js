@@ -100,6 +100,7 @@ function userInit () {
 function remoteSyncChanges (updateAfterConflict = true) {
   return userInit()
     .then(user => {
+      actions.boundUpdateNotificationChannels(user.notificationChannels)
       const timestamp = appStore.getLastSyncedAt()
       return fetch(`${OPTIONS.syncApi}/${user.idUser}/${timestamp}`, { ...requestOptions, method: 'GET' })
         .then(response => (response.ok ? response.json() : Promise.reject()))
