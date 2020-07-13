@@ -562,6 +562,11 @@ class UserAddressesStore extends ReduceStore {
   handleRemoveAddress = (state, action) => {
     const keyAddress = this.createKey(action.payload)
     const prevData = state?.items?.[keyAddress]
+
+    if (!prevData || prevData.removed) {
+      return state
+    }
+
     const item = { ...prevData, removed: true }
 
     return {
