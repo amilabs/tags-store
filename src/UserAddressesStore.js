@@ -347,7 +347,7 @@ class UserAddressesStore extends ReduceStore {
       prevData &&
       isEmpty(addressTags) &&
       isEmpty(prevData.addressUserNote) &&
-      isEmpty(prevData.isWatchingDisabled) &&
+      !prevData.isWatchingDisabled &&
       isEmpty(prevData.watching) &&
       isEmpty(prevData.watchingChannels)
     ) {
@@ -435,7 +435,7 @@ class UserAddressesStore extends ReduceStore {
       }
 
       if (
-        isEmpty(prevData.isWatchingDisabled) &&
+        !prevData.isWatchingDisabled &&
         isEmpty(prevData.watching) &&
         isEmpty(prevData.watchingChannels)
       ) {
@@ -497,7 +497,7 @@ class UserAddressesStore extends ReduceStore {
     prevData = prevData && !prevData.removed ? prevData : undefined
 
     if (
-      isEmpty(isWatchingDisabled) &&
+      !isWatchingDisabled &&
       isEmpty(watching) &&
       isEmpty(watchingChannels)
     ) {
