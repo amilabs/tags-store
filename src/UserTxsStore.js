@@ -369,7 +369,7 @@ class UserTxsStore extends ReduceStore {
     }
 
     if (this.isEmptyTx(nextData)) {
-      if (nextData.removed) {
+      if (nextData.removed || !prevDataActive) {
         return state
       }
 

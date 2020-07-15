@@ -360,7 +360,7 @@ class UserAddressesStore extends ReduceStore {
     }
 
     if (this.isEmptyAddress(nextData)) {
-      if (nextData.removed) {
+      if (nextData.removed || !prevDataActive) {
         return state
       }
 
@@ -444,7 +444,7 @@ class UserAddressesStore extends ReduceStore {
     }
 
     if (this.isEmptyAddress(nextData)) {
-      if (nextData.removed) {
+      if (nextData.removed || !prevDataActive) {
         return state
       }
 
@@ -497,7 +497,7 @@ class UserAddressesStore extends ReduceStore {
     }
 
     if (this.isEmptyAddress(nextData)) {
-      if (nextData.removed) {
+      if (nextData.removed || !prevDataActive) {
         return state
       }
 
