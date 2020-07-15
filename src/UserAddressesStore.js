@@ -191,6 +191,16 @@ class UserAddressesStore extends ReduceStore {
     return state
   }
 
+  isEmptyAddress (data) {
+    return (
+      !data.isWatchingDisabled &&
+      isEmpty(data.watching) &&
+      isEmpty(data.watchingChannels) &&
+      isEmpty(data.addressTags) &&
+      isEmpty(data.addressUserNote)
+    )
+  }
+
   handleMergeData = (state, action) => {
     this.getDispatcher().waitFor([
       userTagsStore.getDispatchToken(),
@@ -338,51 +348,47 @@ class UserAddressesStore extends ReduceStore {
     const data = action.payload
     const keyTag = userTagsStore.createKey(data.tag)
     const keyAddress = this.createKey(data.address)
-    let prevData = state?.items?.[keyAddress]
-    prevData = prevData && !prevData.removed ? prevData : undefined
-    let addressTags = prevData?.addressTags ?? []
-    addressTags = addressTags.filter(item => userTagsStore.createKey(item) !== keyTag)
-
-    if (
-      prevData &&
-      isEmpty(addressTags) &&
-      isEmpty(prevData.addressUserNote) &&
-      !prevData.isWatchingDisabled &&
-      isEmpty(prevData.watching) &&
-      isEmpty(prevData.watchingChannels)
-    ) {
-      const item = {
-        createdTime: now,
-        ...prevData,
-        address: data.address,
-        addressTags,
-        removed: true,
-        updatedTime: now,
-      }
-
-      return {
-        ...state,
-        tmpRemoved: { ...state?.tmpRemoved, [ keyAddress ]: item },
-        items: prevData?.dirty === 1 ?
-          omit(state.items, [ keyAddress ]) :
-          { ...state?.items, [ keyAddress ]: item },
-      }
-    }
-
-    const item = {
+    const prevData = state?.items?.[keyAddress] ?? state?.tmpRemoved?.[keyAddress]
+    const prevDataActive = prevData && !prevData.removed ? prevData : undefined
+    const addressTags = (prevData?.addressTags ?? []).filter(item => userTagsStore.createKey(item) !== keyTag)
+    const nextData = {
       createdTime: now,
       ...prevData,
       address: data.address,
       addressTags,
-      dirty: prevData ? (prevData.dirty || 2) : 1,
-      removed: false,
       updatedTime: now,
     }
+
+    if (this.isEmptyAddress(nextData)) {
+      if (nextData.removed) {
+        return state
+      }
+
+      nextData.removed = true
+
+      return {
+        ...state,
+        tmpRemoved: { ...state?.tmpRemoved, [ keyAddress ]: nextData },
+        items: prevDataActive?.dirty === 1 ?
+          omit(state.items, [ keyAddress ]) :
+          { ...state?.items, [ keyAddress ]: nextData },
+      }
+    }
+
+    if (
+      prevDataActive &&
+      isEqual(prevDataActive.addressTags, nextData.addressTags)
+    ) {
+      return state
+    }
+
+    nextData.dirty = prevDataActive ? (prevDataActive.dirty || 2) : 1
+    nextData.removed = false
 
     return {
       ...state,
       tmpRemoved: omit(state?.tmpRemoved, [ keyAddress ]),
-      items: { ...state?.items, [ keyAddress ]: item },
+      items: { ...state?.items, [ keyAddress ]: nextData },
     }
   }
 
@@ -394,9 +400,9 @@ class UserAddressesStore extends ReduceStore {
     const data = action.payload
     const keyTag = userTagsStore.createKey(data.tag)
     const keyAddress = this.createKey(data.address)
-    let prevData = state?.items?.[keyAddress]
-    prevData = prevData && !prevData.removed ? prevData : undefined
-    const addressTags = prevData?.addressTags ?? []
+    const prevData = state?.items?.[keyAddress] ?? state?.tmpRemoved?.[keyAddress]
+    const prevDataActive = prevData && !prevData.removed ? prevData : undefined
+    const addressTags = uniqBy((prevData?.addressTags ?? []).concat(data.tag), item => userTagsStore.createKey(item))
     const now = Date.now()
 
     return {
@@ -408,8 +414,8 @@ class UserAddressesStore extends ReduceStore {
           createdTime: now,
           ...prevData,
           address: data.address,
-          addressTags: addressTags.concat(data.tag),
-          dirty: prevData ? (prevData.dirty || 2) : 1,
+          addressTags,
+          dirty: prevDataActive ? (prevDataActive.dirty || 2) : 1,
           removed: false,
           updatedTime: now,
         },
@@ -424,65 +430,50 @@ class UserAddressesStore extends ReduceStore {
 
     const data = action.payload
     const keyAddress = this.createKey(data.address)
-    let prevData = state?.items?.[keyAddress]
-    prevData = prevData && !prevData.removed ? prevData : undefined
+    const prevData = state?.items?.[keyAddress] ?? state?.tmpRemoved?.[keyAddress]
+    const prevDataActive = prevData && !prevData.removed ? prevData : undefined
     const addressTags = uniqBy(data.tags, item => userTagsStore.createKey(item))
     const now = Date.now()
+    const nextData = {
+      createdTime: now,
+      ...prevData,
+      address: data.address,
+      addressTags,
+      addressUserNote: data.note,
+      updatedTime: now,
+    }
 
-    if (isEmpty(addressTags) && isEmpty(data.note)) {
-      if (!prevData) {
+    if (this.isEmptyAddress(nextData)) {
+      if (nextData.removed) {
         return state
       }
 
-      if (
-        !prevData.isWatchingDisabled &&
-        isEmpty(prevData.watching) &&
-        isEmpty(prevData.watchingChannels)
-      ) {
-        const item = {
-          createdTime: now,
-          ...prevData,
-          addressTags,
-          addressUserNote: data.note,
-          address: data.address,
-          removed: true,
-          updatedTime: now,
-        }
+      nextData.removed = true
 
-        return {
-          ...state,
-          tmpRemoved: { ...state?.tmpRemoved, [ keyAddress ]: item },
-          items: prevData?.dirty === 1 ?
-            omit(state.items, [ keyAddress ]) :
-            { ...state?.items, [ keyAddress ]: item },
-        }
+      return {
+        ...state,
+        tmpRemoved: { ...state?.tmpRemoved, [ keyAddress ]: nextData },
+        items: prevDataActive?.dirty === 1 ?
+          omit(state.items, [ keyAddress ]) :
+          { ...state?.items, [ keyAddress ]: nextData },
       }
     }
 
     if (
-      prevData &&
-      !prevData.removed &&
-      prevData.addressUserNote === data.note &&
-      isEqual(prevData.addressTags, addressTags)
+      prevDataActive &&
+      isEqual(prevDataActive.addressTags, nextData.addressTags) &&
+      isEqual(prevDataActive.addressUserNote, nextData.addressUserNote)
     ) {
       return state
     }
 
-    const item = {
-      createdTime: now,
-      ...prevData,
-      addressTags,
-      addressUserNote: data.note,
-      address: data.address,
-      dirty: prevData ? (prevData.dirty || 2) : 1,
-      removed: false,
-      updatedTime: now,
-    }
+    nextData.dirty = prevDataActive ? (prevDataActive.dirty || 2) : 1
+    nextData.removed = false
 
     return {
       ...state,
       tmpRemoved: omit(state?.tmpRemoved, [ keyAddress ]),
-      items: { ...state?.items, [ keyAddress ]: item },
+      items: { ...state?.items, [ keyAddress ]: nextData },
     }
   }
 
@@ -493,69 +484,50 @@ class UserAddressesStore extends ReduceStore {
     const watching = Array.isArray(data.watching) ? compact(data.watching) : []
     const watchingChannels = Array.isArray(data.watchingChannels) ? compact(data.watchingChannels) : []
     const now = Date.now()
-    let prevData = state?.items?.[keyAddress]
-    prevData = prevData && !prevData.removed ? prevData : undefined
-
-    if (
-      !isWatchingDisabled &&
-      isEmpty(watching) &&
-      isEmpty(watchingChannels)
-    ) {
-      if (!prevData) {
-        return state
-      }
-
-      if (
-        isEmpty(prevData.addressTags) &&
-        isEmpty(prevData.addressUserNote)
-      ) {
-        const item = {
-          createdTime: now,
-          ...prevData,
-          isWatchingDisabled,
-          watching,
-          watchingChannels,
-          address: data.address,
-          removed: true,
-          updatedTime: now,
-        }
-
-        return {
-          ...state,
-          tmpRemoved: { ...state?.tmpRemoved, [ keyAddress ]: item },
-          items: prevData?.dirty === 1 ?
-            omit(state.items, [ keyAddress ]) :
-            { ...state?.items, [ keyAddress ]: item },
-        }
-      }
-    }
-
-    if (
-      prevData &&
-      !prevData.removed &&
-      prevData.isWatchingDisabled === isWatchingDisabled &&
-      isEqual(prevData.watching, watching) &&
-      isEqual(prevData.watchingChannels, watchingChannels)
-    ) {
-      return state
-    }
-
-    const item = {
+    const prevData = state?.items?.[keyAddress] ?? state?.tmpRemoved?.[keyAddress]
+    const prevDataActive = prevData && !prevData.removed ? prevData : undefined
+    const nextData = {
       createdTime: now,
       ...prevData,
       isWatchingDisabled,
       watching,
       watchingChannels,
       address: data.address,
-      dirty: prevData ? (prevData.dirty || 2) : 1,
-      removed: false,
       updatedTime: now,
     }
+
+    if (this.isEmptyAddress(nextData)) {
+      if (nextData.removed) {
+        return state
+      }
+
+      nextData.removed = true
+
+      return {
+        ...state,
+        tmpRemoved: { ...state?.tmpRemoved, [ keyAddress ]: nextData },
+        items: prevDataActive?.dirty === 1 ?
+          omit(state.items, [ keyAddress ]) :
+          { ...state?.items, [ keyAddress ]: nextData },
+      }
+    }
+
+    if (
+      prevDataActive &&
+      nextData.isWatchingDisabled === prevDataActive.isWatchingDisabled &&
+      isEqual(prevDataActive.watching, nextData.watching) &&
+      isEqual(prevDataActive.watchingChannels, nextData.watchingChannels)
+    ) {
+      return state
+    }
+
+    nextData.dirty = prevDataActive ? (prevDataActive.dirty || 2) : 1
+    nextData.removed = false
 
     return {
       ...state,
       tmpRemoved: omit(state?.tmpRemoved, [ keyAddress ]),
-      items: { ...state?.items, [ keyAddress ]: item },
+      items: { ...state?.items, [ keyAddress ]: nextData },
     }
   }
 
@@ -567,7 +539,11 @@ class UserAddressesStore extends ReduceStore {
       return state
     }
 
-    const item = { ...prevData, removed: true }
+    const item = {
+      ...prevData,
+      removed: true,
+      updatedTime: Date.now(),
+    }
 
     return {
       ...state,

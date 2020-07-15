@@ -150,6 +150,12 @@ class UserTxsStore extends ReduceStore {
     return state
   }
 
+  isEmptyTx (data) {
+    return (
+      !data.txUserNote
+    )
+  }
+
   handleMergeData = (state, action) => {
     let data = action?.payload?.data?.userTxs?.items || []
     data = Array.isArray(data) ? data : []
@@ -352,53 +358,57 @@ class UserTxsStore extends ReduceStore {
     const now = Date.now()
     const data = action.payload
     const key = this.createKey(data.txHash)
-    let prevData = state?.items?.[key]
-    prevData = prevData && !prevData.removed ? prevData : undefined
-
-    if (!data.note) {
-      if (!prevData) {
-        return state
-      }
-
-      const item = {
-        createdTime: now,
-        ...prevData,
-        txHash: data.txHash,
-        txUserNote: data.note,
-        removed: true,
-        updatedTime: now,
-      }
-
-      return {
-        ...state,
-        tmpRemoved: { ...state?.tmpRemoved, [key]: item },
-        items: prevData?.dirty === 1 ?
-          omit(state.items, [key]) :
-          { ...state?.items, [key]: item },
-      }
-    }
-
-    const item = {
+    const prevData = state?.items?.[key] ?? state?.tmpRemoved?.[key]
+    const prevDataActive = prevData && !prevData.removed ? prevData : undefined
+    const nextData = {
       createdTime: now,
       ...prevData,
       txHash: data.txHash,
       txUserNote: data.note,
-      dirty: prevData ? (prevData.dirty || 2) : 1,
-      removed: false,
       updatedTime: now,
     }
+
+    if (this.isEmptyTx(nextData)) {
+      if (nextData.removed) {
+        return state
+      }
+
+      nextData.removed = true
+
+      return {
+        ...state,
+        tmpRemoved: { ...state?.tmpRemoved, [ key ]: nextData },
+        items: prevDataActive?.dirty === 1 ?
+          omit(state.items, [ key ]) :
+          { ...state?.items, [ key ]: nextData },
+      }
+    }
+
+    if (
+      prevDataActive &&
+      isEqual(prevDataActive.txUserNote, nextData.txUserNote)
+    ) {
+      return state
+    }
+
+    nextData.dirty = prevDataActive ? (prevDataActive.dirty || 2) : 1
+    nextData.removed = false
 
     return {
       ...state,
       tmpRemoved: omit(state?.tmpRemoved, [ key ]),
-      items: { ...state?.items, [key]: item },
+      items: { ...state?.items, [ key ]: nextData },
     }
   }
 
   handleRemoveTx = (state, action) => {
     const key = this.createKey(action.payload)
     const prevData = state?.items?.[key]
-    const item = { ...prevData, removed: true }
+    const item = {
+      ...prevData,
+      removed: true,
+      updatedTime: Date.now(),
+    }
 
     return {
       ...state,
