@@ -96,30 +96,26 @@ class UserAddressesStore extends ReduceStore {
     )
   }
 
-  getAddressNote (address) {
+  getAddressNote (address, withRemoved) {
     const state = this.getState()
     const data = state?.items?.[ this.createKey(address) ]
-    return data && !data.removed && data.addressUserNote || ''
+    return data && (withRemoved || !data.removed) && data.addressUserNote || ''
   }
 
-  getAddressTags (address) {
+  getAddressTags (address, withRemoved) {
     const state = this.getState()
     const data = state?.items?.[ this.createKey(address) ]
-    return data && !data.removed && data.addressTags || []
+    return data && (withRemoved || !data.removed) && data.addressTags || []
   }
 
-  getAddressWatch (address) {
+  getAddressWatch (address, withRemoved) {
     const state = this.getState()
     const data = state?.items?.[ this.createKey(address) ]
-    return data && !data.removed && {
+    return data && (withRemoved || !data.removed) ? {
       isWatchingDisabled: !!data.isWatchingDisabled,
       watching: Array.isArray(data.watching) ? data.watching : [],
       watchingChannels: Array.isArray(data.watchingChannels) ? data.watchingChannels : [],
-    } || {
-      isWatchingDisabled: false,
-      watching: [],
-      watchingChannels: [],
-    }
+    } : undefined
   }
 
   getItemStatus (address) {
@@ -193,7 +189,7 @@ class UserAddressesStore extends ReduceStore {
 
   isEmptyAddress (data) {
     return (
-      !data.isWatchingDisabled &&
+      data.isWatchingDisabled &&
       isEmpty(data.watching) &&
       isEmpty(data.watchingChannels) &&
       isEmpty(data.addressTags) &&
