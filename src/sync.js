@@ -35,22 +35,29 @@ export function syncChangesQueue () {
     OPTIONS.onSync?.(null, true)
     return remoteSyncChanges()
       .then((data) => {
+        actions.boundUpdateLastSyncCall()
         OPTIONS.onSync?.(null, false)
       })
       .catch(error => {
+        actions.boundUpdateLastSyncCall()
         OPTIONS.onSync?.(error || new Error('Remote sync error'), false)
         return Promise.reject(error)
       })
   })
 }
 
-export function syncChanges (renewalOnly = false) {
+export function syncChanges (renewalOnly = false, cacheCall = false) {
   if (OPTIONS.syncApi && OPTIONS.syncUserApi && appStore.canPushChanges()) {
     if (
       !renewalOnly ||
       (renewalOnly && appStore.getLastSyncedAt() > 1)
     ) {
-      syncChangesLazy()
+      if (
+        !cacheCall ||
+        (Date.now() - appStore.getLastSyncCall()) > cacheCall
+      ) {
+        syncChangesLazy()
+      }
     }
   } else {
     syncChangesLazy.cancel()

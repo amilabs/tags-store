@@ -9,6 +9,7 @@ import {
   TOGGLE_SHOW_DIALOG_HELP,
   TOGGLE_SYNC_TAGS_AND_NOTES,
   UPDATE_LAST_SYNC_TIME,
+  UPDATE_LAST_SYNC_CALL,
   UPDATE_NOTIFICATION_CHANNELS,
 } from './actions'
 
@@ -27,6 +28,7 @@ class AppStore extends ReduceStore {
       [TOGGLE_SHOW_DIALOG_HELP]: this.handleToggleShowDialogHelp,
       [TOGGLE_SYNC_TAGS_AND_NOTES]: this.handleToggleSyncTagsAndNotes,
       [UPDATE_LAST_SYNC_TIME]: this.handleUpdateLastSyncTime,
+      [UPDATE_LAST_SYNC_CALL]: this.handleUpdateLastSyncCall,
       [UPDATE_NOTIFICATION_CHANNELS]: this.handleUpdateNotificationChannels,
     }
   }
@@ -46,6 +48,10 @@ class AppStore extends ReduceStore {
 
     if (state.lastSyncedAt === undefined) {
       state.lastSyncedAt = 1
+    }
+
+    if (state.lastSyncCall === undefined) {
+      state.lastSyncCall = 0
     }
 
     if (state.syncTagsAndNotes === undefined) {
@@ -77,6 +83,10 @@ class AppStore extends ReduceStore {
 
   getLastSyncedAt () {
     return this.getState().lastSyncedAt || 1
+  }
+
+  getLastSyncCall () {
+    return this.getState().lastSyncCall || 0
   }
 
   getNotificationChannels () {
@@ -121,6 +131,13 @@ class AppStore extends ReduceStore {
     return {
       ...state,
       lastSyncedAt: action.payload,
+    }
+  }
+
+  handleUpdateLastSyncCall = (state) => {
+    return {
+      ...state,
+      lastSyncCall: Date.now(),
     }
   }
 

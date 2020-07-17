@@ -18,8 +18,18 @@ export const TOGGLE_SHOW_DIALOG_HELP = 'toggle_show_dialog_help'
 export const TOGGLE_SYNC_TAGS_AND_NOTES = 'toggle_sync_tags_and_notes'
 export const UPDATE_DIRTY_STATUS = 'update_dirty_status'
 export const UPDATE_LAST_SYNC_TIME = 'update_last_sync_time'
+export const UPDATE_LAST_SYNC_CALL = 'update_last_sync_call'
 export const UPDATE_NOTIFICATION_CHANNELS = 'update_notification_channels'
 export const UPDATE_USERNAME = 'userinfo_username_update'
+
+
+export const updateLastSyncCall = () => ({
+  type: UPDATE_LAST_SYNC_CALL,
+})
+
+export const boundUpdateLastSyncCall = () => (
+  dispatcher.dispatch(updateLastSyncCall())
+)
 
 export const replaceTxNote = (txHash, note) => ({
   type: REPLACE_TX_NOTE,
