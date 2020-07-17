@@ -21,6 +21,7 @@ const requestOptions = {
 }
 
 const OPTIONS = {
+  onSync: undefined,
   syncApi: undefined,
   syncUserApi: undefined,
   accessTagsNotes: false,
@@ -30,7 +31,17 @@ const syncChangesLazy = debounce(syncChangesQueue, 500)
 
 export function syncChangesQueue () {
   queue.clear()
-  return queue.add(() => remoteSyncChanges())
+  return queue.add(() => {
+    OPTIONS.onSync?.(null, true)
+    return remoteSyncChanges()
+      .then((data) => {
+        OPTIONS.onSync?.(null, false)
+      })
+      .catch(error => {
+        OPTIONS.onSync?.(error || new Error('Remote sync error'), false)
+        return Promise.reject(error)
+      })
+  })
 }
 
 export function syncChanges (renewalOnly = false) {
@@ -86,6 +97,7 @@ syncChanges.start = () => {
 }
 
 export function syncOptions (options) {
+  OPTIONS.onSync = options?.onSync
   OPTIONS.syncApi = options?.syncApi
   OPTIONS.syncUserApi = options?.syncUserApi
   OPTIONS.accessTagsNotes = options?.accessTagsNotes ?? false
