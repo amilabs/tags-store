@@ -129,7 +129,8 @@ class UserAddressesStore extends ReduceStore {
       isWatching: Boolean(
         !data.isWatchingDisabled &&
         !isEmpty(data.watching) &&
-        !isEmpty(data.watchingChannels)
+        !isEmpty(data.watchingChannels) &&
+        !isEmpty(appStore.getNotificationChannels())
       ),
     }
   }
