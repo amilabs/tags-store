@@ -61,12 +61,12 @@ export function registerStore (store, sync) {
   })
 }
 
-export function exportStoreToJSON () {
+export function exportStoreToJSON ({ types } = {}) {
   return {
-    ...userTagsStore.getExportJSON(),
-    ...userAddressesStore.getExportJSON(),
-    ...userInfoStore.getExportJSON(),
-    ...userTxsStore.getExportJSON(),
+    ...userTagsStore.getExportJSON({ types }),
+    ...userAddressesStore.getExportJSON({ types }),
+    ...userInfoStore.getExportJSON({ types }),
+    ...userTxsStore.getExportJSON({ types }),
   }
 }
 

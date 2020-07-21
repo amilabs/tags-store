@@ -57,7 +57,13 @@ class UserTxsStore extends ReduceStore {
     return { items }
   }
 
-  getExportJSON () {
+  getExportJSON ({ types }) {
+    if (Array.isArray(types)) {
+      if (types.indexOf('notes') === -1) {
+        return {}
+      }
+    }
+
     const state = this.getState()
     return {
       userTxs: {

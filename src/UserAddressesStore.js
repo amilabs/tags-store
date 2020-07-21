@@ -77,13 +77,27 @@ class UserAddressesStore extends ReduceStore {
     return { items }
   }
 
-  getExportJSON () {
+  getExportJSON ({ types }) {
+    const ignore = []
+    if (Array.isArray(types)) {
+      if (types.indexOf('tags') === -1) {
+        ignore.push('addressTags')
+      }
+      if (types.indexOf('notes') === -1) {
+        ignore.push('addressUserNote')
+      }
+      if (types.indexOf('watch') === -1) {
+        ignore.push('isWatchingDisabled', 'watching', 'watchingChannels')
+      }
+    }
+
     const state = this.getState()
     return {
       userAddresses: {
         items: Object.values(state.items)
           .filter(item => !item.removed)
-          .map(item => this.validateValue(item))
+          .map(item => omit(this.validateValue(item), ignore))
+          .filter(item => !this.isEmptyAddress(item))
       }
     }
   }
@@ -190,7 +204,7 @@ class UserAddressesStore extends ReduceStore {
 
   isEmptyAddress (data) {
     return (
-      data.isWatchingDisabled &&
+      !data.isWatchingDisabled &&
       isEmpty(data.watching) &&
       isEmpty(data.watchingChannels) &&
       isEmpty(data.addressTags) &&
@@ -215,7 +229,7 @@ class UserAddressesStore extends ReduceStore {
     let items = data.reduce((out, item) => {
       const key = this.createKey(item.address)
       const currentData = state?.items?.[key]
-      const nextData = {
+      const nextData = this.validateValue({
         address: item.address,
         addressTags: uniqBy([].concat(currentData?.addressTags ?? [], item.addressTags), tag => userTagsStore.createKey(tag)),
         addressUserNote: isTargetPriority ? (currentData?.addressUserNote || item.addressUserNote) : (item.addressUserNote || currentData?.addressUserNote),
@@ -228,7 +242,7 @@ class UserAddressesStore extends ReduceStore {
         updatedTime: isTargetPriority ?
           (currentData?.updatedTime || item.updatedTime || now) :
           ((item.createdTime && item.updatedTime) ? item.updatedTime : (currentData?.updatedTime || now)),
-      }
+      })
 
       if (!currentData) {
         nextData.dirty = 1

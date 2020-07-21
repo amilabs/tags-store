@@ -56,7 +56,13 @@ class UserTagsStore extends ReduceStore {
     return { items }
   }
 
-  getExportJSON () {
+  getExportJSON ({ types }) {
+    if (Array.isArray(types)) {
+      if (types.indexOf('tags') === -1) {
+        return {}
+      }
+    }
+
     const state = this.getState()
     return {
       userTags: {
