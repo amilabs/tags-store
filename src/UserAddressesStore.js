@@ -133,10 +133,12 @@ class UserAddressesStore extends ReduceStore {
   }
 
   getItemStatus (address) {
+    const key = this.createKey(address)
     const state = this.getState()
-    const data = state?.items?.[ this.createKey(address) ] || {}
+    const data = state?.items?.[ key ] || {}
     return {
       updatedTime: data.updatedTime || 0,
+      isExists: Boolean(state && state.items && Object.hasOwnProperty.call(state.items, key)),
       isInserted: !data.removed && data.dirty === 1,
       isUpdated: !data.removed && data.dirty === 2,
       isRemoved: !!data.removed,
