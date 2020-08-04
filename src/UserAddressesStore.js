@@ -52,13 +52,21 @@ class UserAddressesStore extends ReduceStore {
   }
 
   validateValue (item) {
+    let isWatchingDisabled = Boolean(item.isWatchingDisabled)
+    const watching = Array.isArray(item.watching) ? item.watching : []
+    const watchingChannels = Array.isArray(item.watchingChannels) ? item.watchingChannels : []
+
+    if (isEmpty(watching) || isEmpty(watching)) {
+      isWatchingDisabled = true
+    }
+
     return {
       address: item.address,
       addressTags: Array.isArray(item.addressTags) ? item.addressTags : [],
       addressUserNote: String(item.addressUserNote || ''),
-      isWatchingDisabled: Boolean(item.isWatchingDisabled),
-      watching: Array.isArray(item.watching) ? item.watching : [],
-      watchingChannels: Array.isArray(item.watchingChannels) ? item.watchingChannels : [],
+      isWatchingDisabled,
+      watching,
+      watchingChannels,
       createdTime: item.createdTime,
       updatedTime: item.updatedTime,
     }
@@ -125,11 +133,24 @@ class UserAddressesStore extends ReduceStore {
   getAddressWatch (address, withRemoved) {
     const state = this.getState()
     const data = state?.items?.[ this.createKey(address) ]
-    return data && (withRemoved || !data.removed) ? {
-      isWatchingDisabled: !!data.isWatchingDisabled,
-      watching: Array.isArray(data.watching) ? data.watching : [],
-      watchingChannels: Array.isArray(data.watchingChannels) ? data.watchingChannels : [],
-    } : undefined
+
+    if (!(data && (withRemoved || !data.removed))) {
+      return
+    }
+
+    const watching = Array.isArray(data.watching) ? data.watching : []
+    const watchingChannels = Array.isArray(data.watchingChannels) ? data.watchingChannels : []
+    let isWatchingDisabled = !!data.isWatchingDisabled
+
+    if (isEmpty(watching) || isEmpty(watchingChannels)) {
+      isWatchingDisabled = true
+    }
+
+    return {
+      isWatchingDisabled,
+      watching,
+      watchingChannels,
+    }
   }
 
   getItemStatus (address) {
@@ -143,12 +164,25 @@ class UserAddressesStore extends ReduceStore {
       isUpdated: !data.removed && data.dirty === 2,
       isRemoved: !!data.removed,
       isWatching: Boolean(
+        !data.removed &&
         !data.isWatchingDisabled &&
         !isEmpty(data.watching) &&
         !isEmpty(data.watchingChannels) &&
         !isEmpty(appStore.getNotificationChannels())
       ),
     }
+  }
+
+  canRemove (address) {
+    const key = this.createKey(address)
+    const state = this.getState()
+    const data = state?.items?.[ key ]
+
+    if (!data || data.removed) {
+      return false
+    }
+
+    return true
   }
 
   getAllAddressTagsCount () {
@@ -206,7 +240,7 @@ class UserAddressesStore extends ReduceStore {
 
   isEmptyAddress (data) {
     return (
-      !data.isWatchingDisabled &&
+      // !data.isWatchingDisabled &&
       isEmpty(data.watching) &&
       isEmpty(data.watchingChannels) &&
       isEmpty(data.addressTags) &&
