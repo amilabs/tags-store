@@ -1,12 +1,15 @@
 import ReduceStore from 'flux/lib/FluxReduceStore'
 import dispatcher from './dispatcher'
 import localStore from './localStore'
-import { isEmpty, isEqual, pick, omit, pickBy, mapValues, differenceBy, intersectionBy, validate } from './utils'
+import { isEmpty, isEqual, pick, omit, pickBy, mapValues, uniqBy, differenceBy, intersectionBy, validate } from './utils'
 import {
+  ADD_TX_TAG,
   CLEAR_DATABASE,
   MARK_ALL_AS_DIRTY,
   MERGE_DATA,
+  REMOVE_TX_TAG,
   REMOVE_TX,
+  REPLACE_TX_TAGS_AND_NOTE,
   REPLACE_TX_NOTE,
   RESET_FROM_DATA,
   RESET_FROM_STORE,
@@ -14,6 +17,7 @@ import {
   UPDATE_DIRTY_STATUS,
 } from './actions'
 import appStore from './AppStore'
+import userTagsStore from './UserTagsStore'
 
 const INITIAL_STATE = {
   items: {},
@@ -28,10 +32,13 @@ class UserTxsStore extends ReduceStore {
 
   get actions () {
     return {
+      [ADD_TX_TAG]: this.handleAddTxTag,
       [CLEAR_DATABASE]: this.handleClearDatabase,
       [MARK_ALL_AS_DIRTY]: this.handleMarkAllAsDirty,
       [MERGE_DATA]: this.handleMergeData,
+      [REMOVE_TX_TAG]: this.handleRemoveTxTag,
       [REMOVE_TX]: this.handleRemoveTx,
+      [REPLACE_TX_TAGS_AND_NOTE]: this.handleReplaceTxTagsAndNote,
       [REPLACE_TX_NOTE]: this.handleReplaceTxNote,
       [RESET_FROM_DATA]: this.handleResetFromData,
       [RESET_FROM_STORE]: this.handleResetFromStore,
@@ -42,6 +49,16 @@ class UserTxsStore extends ReduceStore {
 
   createKey (data) {
     return String(data).toLowerCase()
+  }
+
+  validateValue (item) {
+    return {
+      txHash: item.txHash,
+      txTags: Array.isArray(item.txTags) ? item.txTags : [],
+      txUserNote: String(item.txUserNote || ''),
+      createdTime: item.createdTime,
+      updatedTime: item.updatedTime,
+    }
   }
 
   setDescriptor (data) {
@@ -58,9 +75,13 @@ class UserTxsStore extends ReduceStore {
   }
 
   getExportJSON ({ types }) {
+    const ignore = []
     if (Array.isArray(types)) {
+      if (types.indexOf('tags') === -1) {
+        ignore.push('txTags')
+      }
       if (types.indexOf('notes') === -1) {
-        return {}
+        ignore.push('txUserNote')
       }
     }
 
@@ -69,12 +90,8 @@ class UserTxsStore extends ReduceStore {
       userTxs: {
         items: Object.values(state.items)
           .filter(item => !item.removed)
-          .map(item => ({
-            txHash: item.txHash,
-            txUserNote: item.txUserNote,
-            createdTime: item.createdTime,
-            updatedTime: item.updatedTime,
-          }))
+          .map(item => omit(this.validateValue(item), ignore))
+          .filter(item => !this.isEmptyTx(item))
       }
     }
   }
@@ -93,11 +110,55 @@ class UserTxsStore extends ReduceStore {
     return data && !data.removed && data.txUserNote || ''
   }
 
+  getTxTags (tx, withRemoved) {
+    const state = this.getState()
+    const data = state?.items?.[ this.createKey(tx) ]
+    return data && (withRemoved || !data.removed) && data.txTags || []
+  }
+
   getAllTxsCount () {
     const state = this.getState()
     let cnt = 0
     for (const tx in state.items) {
       const data = state.items[tx]
+      if (data && !data.removed) {
+        cnt += 1
+      }
+    }
+    return cnt
+  }
+
+  getItemStatus (tx) {
+    const key = this.createKey(tx)
+    const state = this.getState()
+    const data = state?.items?.[ key ] || {}
+    return {
+      updatedTime: data.updatedTime || 0,
+      isExists: Boolean(state && state.items && Object.hasOwnProperty.call(state.items, key)),
+      isInserted: !data.removed && data.dirty === 1,
+      isUpdated: !data.removed && data.dirty === 2,
+      isRemoved: !!data.removed,
+      isWatching: false,
+    }
+  }
+
+  canRemove (tx) {
+    const key = this.createKey(tx)
+    const state = this.getState()
+    const data = state?.items?.[ key ]
+
+    if (!data || data.removed) {
+      return false
+    }
+
+    return true
+  }
+
+  getAllTxTagsCount () {
+    const state = this.getState()
+    let cnt = 0
+    for (const tx in state.items) {
+      const data = state.items?.[tx]
       if (data && !data.removed) {
         cnt += 1
       }
@@ -116,23 +177,13 @@ class UserTxsStore extends ReduceStore {
       mapValues(pickBy(state.items, item => (
         item.dirty === 1 &&
         !item.removed
-      )), item => ({
-        txHash: item.txHash,
-        txUserNote: item.txUserNote,
-        createdTime: item.createdTime,
-        updatedTime: item.updatedTime,
-      }))
+      )), item => this.validateValue(item))
     )
     const update = Object.values(
       mapValues(pickBy(state.items, item => (
         item.dirty === 2 &&
         !item.removed
-      )), item => ({
-        txHash: item.txHash,
-        txUserNote: item.txUserNote,
-        createdTime: item.createdTime,
-        updatedTime: item.updatedTime,
-      }))
+      )), item => this.validateValue(item))
     )
 
     if (isEmpty(remove) && isEmpty(insert) && isEmpty(update)) {
@@ -158,11 +209,16 @@ class UserTxsStore extends ReduceStore {
 
   isEmptyTx (data) {
     return (
-      !data.txUserNote
+      isEmpty(data.txTags) &&
+      isEmpty(data.txUserNote)
     )
   }
 
   handleMergeData = (state, action) => {
+    this.getDispatcher().waitFor([
+      userTagsStore.getDispatchToken(),
+    ])
+
     let data = action?.payload?.data?.userTxs?.items || []
     data = Array.isArray(data) ? data : []
 
@@ -175,24 +231,23 @@ class UserTxsStore extends ReduceStore {
     let items = data.reduce((out, item) => {
       const key = this.createKey(item.txHash)
       const currentData = state?.items?.[key]
-      const nextData = {
+      const nextData = this.validateValue({
         txHash: item.txHash,
-        txUserNote: isTargetPriority ?
-          (currentData?.txUserNote || item.txUserNote) :
-          (item.txUserNote || currentData?.txUserNote),
+        txTags: uniqBy([].concat(currentData?.txTags ?? [], item.txTags), tag => userTagsStore.createKey(tag)),
+        txUserNote: isTargetPriority ? (currentData?.txUserNote || item.txUserNote) : (item.txUserNote || currentData?.txUserNote),
         createdTime: isTargetPriority ?
           (currentData?.createdTime || item.createdTime || now) :
           ((item.createdTime && item.updatedTime) ? item.createdTime : (currentData?.createdTime || now)),
         updatedTime: isTargetPriority ?
           (currentData?.updatedTime || item.updatedTime || now) :
           ((item.createdTime && item.updatedTime) ? item.updatedTime : (currentData?.updatedTime || now)),
-      }
+      })
 
       if (!currentData) {
         nextData.dirty = 1
       } else if (!isEqual(
-        pick(currentData, ['txUserNote', 'createdTime', 'updatedTime']),
-        pick(nextData, ['txUserNote', 'createdTime', 'updatedTime'])
+        pick(currentData, ['txTags', 'txUserNote', 'createdTime', 'updatedTime']),
+        pick(nextData, ['txTags', 'txUserNote', 'createdTime', 'updatedTime'])
       )) {
         nextData.dirty = 2
       }
@@ -203,6 +258,11 @@ class UserTxsStore extends ReduceStore {
 
     if (this.descriptor) {
       items = Object.values(items)
+        .map(item => ({
+          ...item,
+          txTags: Array.isArray(item.txTags) ?
+            item.txTags.filter(item => userTagsStore.hasTag(item)) : [],
+        }))
         .filter(item => validate(item, this.descriptor))
         .reduce((out, item) => {
           out[this.createKey(item.txHash)] = item
@@ -223,10 +283,18 @@ class UserTxsStore extends ReduceStore {
   handleResetFromData = (state, action) => {
     this.getDispatcher().waitFor([
       appStore.getDispatchToken(),
+      userTagsStore.getDispatchToken(),
     ])
 
     let data = action.payload?.userTxs?.items || []
     data = Array.isArray(data) ? data : []
+
+    data = data.map(item => ({
+      ...item,
+      txTags: Array.isArray(item.txTags) ?
+        item.txTags.filter(item => userTagsStore.hasTag(item)) : [],
+    }))
+
     if (this.descriptor) {
       data = data.filter(item => validate(item, this.descriptor))
     }
@@ -237,8 +305,7 @@ class UserTxsStore extends ReduceStore {
     const updated = intersectionBy(data, prevData, item => this.createKey(item.txHash))
     const now = Date.now()
     const create = item => ({
-      txHash: item.txHash,
-      txUserNote: item.txUserNote,
+      ...this.validateValue(item),
       createdTime: item.createdTime || now,
       updatedTime: item.updatedTime || now,
     })
@@ -289,23 +356,146 @@ class UserTxsStore extends ReduceStore {
     return this.getInitialState()
   }
 
-  handleMarkAllAsDirty = (state) => {
-    const items = {}
-    for (const key in state.items) {
-      items[key] = {
-        ...state.items[key],
-        dirty: state.items[key]?.dirty ?? 1
+  handleRemoveTxTag = (state, action) => {
+    const now = Date.now()
+    const data = action.payload
+    const keyTag = userTagsStore.createKey(data.tag)
+    const keyTx = this.createKey(data.txHash)
+    const prevData = state?.items?.[keyTx] ?? state?.tmpRemoved?.[keyTx]
+    const prevDataActive = prevData && !prevData.removed ? prevData : undefined
+    const txTags = (prevData?.txTags ?? []).filter(item => userTagsStore.createKey(item) !== keyTag)
+    const nextData = {
+      createdTime: now,
+      ...prevData,
+      txHash: data.txHash,
+      txTags,
+      updatedTime: now,
+    }
+
+    if (this.isEmptyTx(nextData)) {
+      if (nextData.removed || !prevDataActive) {
+        return state
+      }
+
+      nextData.removed = true
+
+      return {
+        ...state,
+        tmpRemoved: { ...state?.tmpRemoved, [ keyTx ]: nextData },
+        items: prevDataActive?.dirty === 1 ?
+          omit(state.items, [ keyTx ]) :
+          { ...state?.items, [ keyTx ]: nextData },
       }
     }
 
+    if (
+      prevDataActive &&
+      isEqual(prevDataActive.txTags, nextData.txTags)
+    ) {
+      return state
+    }
+
+    nextData.dirty = prevDataActive ? (prevDataActive.dirty || 2) : 1
+    nextData.removed = false
+
     return {
       ...state,
-      items,
+      tmpRemoved: omit(state?.tmpRemoved, [ keyTx ]),
+      items: { ...state?.items, [ keyTx ]: nextData },
+    }
+  }
+
+  handleAddTxTag = (state, action) => {
+    this.getDispatcher().waitFor([
+      userTagsStore.getDispatchToken(),
+    ])
+
+    const data = action.payload
+    const keyTag = userTagsStore.createKey(data.tag)
+    const keyTx = this.createKey(data.txHash)
+    const prevData = state?.items?.[keyTx] ?? state?.tmpRemoved?.[keyTx]
+    const prevDataActive = prevData && !prevData.removed ? prevData : undefined
+    const txTags = uniqBy((prevData?.txTags ?? []).concat(data.tag), item => userTagsStore.createKey(item))
+    const now = Date.now()
+
+    return {
+      ...state,
+      tmpRemoved: omit(state?.tmpRemoved, [ keyTx ]),
+      items: {
+        ...state?.items,
+        [ keyTx ]: {
+          createdTime: now,
+          ...prevData,
+          txHash: data.txHash,
+          txTags,
+          dirty: prevDataActive ? (prevDataActive.dirty || 2) : 1,
+          removed: false,
+          updatedTime: now,
+        },
+      },
+    }
+  }
+
+  handleReplaceTxTagsAndNote = (state, action) => {
+    this.getDispatcher().waitFor([
+      userTagsStore.getDispatchToken(),
+    ])
+
+    const data = action.payload
+    const keyTx = this.createKey(data.txHash)
+    const prevData = state?.items?.[keyTx] ?? state?.tmpRemoved?.[keyTx]
+    const prevDataActive = prevData && !prevData.removed ? prevData : undefined
+    const txTags = uniqBy(data.tags, item => userTagsStore.createKey(item))
+    const now = Date.now()
+    const nextData = {
+      createdTime: now,
+      ...prevData,
+      txHash: data.txHash,
+      txTags,
+      txUserNote: data.note,
+      updatedTime: now,
+    }
+
+    if (this.isEmptyTx(nextData)) {
+      if (nextData.removed || !prevDataActive) {
+        return state
+      }
+
+      nextData.removed = true
+
+      return {
+        ...state,
+        tmpRemoved: { ...state?.tmpRemoved, [ keyTx ]: nextData },
+        items: prevDataActive?.dirty === 1 ?
+          omit(state.items, [ keyTx ]) :
+          { ...state?.items, [ keyTx ]: nextData },
+      }
+    }
+
+    if (
+      prevDataActive &&
+      isEqual(prevDataActive.txTags, nextData.txTags) &&
+      isEqual(prevDataActive.txUserNote, nextData.txUserNote)
+    ) {
+      return state
+    }
+
+    nextData.dirty = prevDataActive ? (prevDataActive.dirty || 2) : 1
+    nextData.removed = false
+
+    return {
+      ...state,
+      tmpRemoved: omit(state?.tmpRemoved, [ keyTx ]),
+      items: { ...state?.items, [ keyTx ]: nextData },
     }
   }
 
   handleSyncChanges = (state, action) => {
-    if (isEmpty(action?.payload?.userTx)) {
+    this.getDispatcher().waitFor([
+      userTagsStore.getDispatchToken(),
+    ])
+
+    if (!action?.payload?.userTx) {
       return state
     }
 
@@ -324,10 +514,6 @@ class UserTxsStore extends ReduceStore {
         ...state,
         items: omit(state.items, keys)
       }
-    }
-
-    if (isEmpty(created) && isEmpty(insert) && isEmpty(updated) && isEmpty(update)) {
-      return state
     }
 
     const keys = [].concat(
@@ -410,6 +596,11 @@ class UserTxsStore extends ReduceStore {
   handleRemoveTx = (state, action) => {
     const key = this.createKey(action.payload)
     const prevData = state?.items?.[key]
+
+    if (!prevData || prevData.removed) {
+      return state
+    }
+
     const item = {
       ...prevData,
       removed: true,
@@ -422,6 +613,21 @@ class UserTxsStore extends ReduceStore {
       items: prevData?.dirty === 1 ?
         omit(state.items, [key]) :
         { ...state?.items, [key]: item },
+    }
+  }
+
+  handleMarkAllAsDirty = (state) => {
+    const items = {}
+    for (const key in state.items) {
+      items[key] = {
+        ...state.items[key],
+        dirty: state.items[key]?.dirty ?? 1
+      }
+    }
+
+    return {
+      ...state,
+      items,
     }
   }
 

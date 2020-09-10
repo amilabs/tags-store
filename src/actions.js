@@ -1,5 +1,6 @@
 import dispatcher from './dispatcher'
 
+export const ADD_TX_TAG = 'add_tx_tag'
 export const ADD_ADDRESS_TAG = 'address_tag_add'
 export const CLEAR_DATABASE = 'clear_database'
 export const MARK_ALL_AS_DIRTY = 'mark_all_as_dirty'
@@ -7,6 +8,8 @@ export const MERGE_DATA = 'merge_data'
 export const REMOVE_ADDRESS = 'address_remove'
 export const REMOVE_ADDRESS_TAG = 'address_tag_remove'
 export const REMOVE_TX = 'remove_tx'
+export const REMOVE_TX_TAG = 'remove_tx_tag'
+export const REPLACE_TX_TAGS_AND_NOTE = 'replace_tx_tags_and_notes'
 export const REPLACE_ADDRESS_TAGS_AND_NOTE = 'address_tags_and_note_replace'
 export const REPLACE_ADDRESS_WATCH = 'replace_address_watch'
 export const REPLACE_TX_NOTE = 'replace_tx_note'
@@ -58,6 +61,15 @@ export const boundReplaceAddressTagsAndNote = (address, data) => (
   dispatcher.dispatch(replaceAddressTagsAndNote(address, data))
 )
 
+export const replaceTxTagsAndNote = (txHash, data) => ({
+  type: REPLACE_TX_TAGS_AND_NOTE,
+  payload: { txHash, tags: data.tags, note: data.note },
+})
+
+export const boundReplaceTxTagsAndNote = (txHash, data) => (
+  dispatcher.dispatch(replaceTxTagsAndNote(txHash, data))
+)
+
 export const replaceAddressWatch = (address, data) => ({
   type: REPLACE_ADDRESS_WATCH,
   payload: { address, isWatchingDisabled: data.isWatchingDisabled, watching: data.watching, watchingChannels: data.watchingChannels },
@@ -76,6 +88,15 @@ export const boundAddAddressTag = (address, tag) => (
   dispatcher.dispatch(addAddressTag(address, tag))
 )
 
+export const addTxTag = (txHash, tag) => ({
+  type: ADD_TX_TAG,
+  payload: { txHash, tag },
+})
+
+export const boundAddTxTag = (txHash, tag) => (
+  dispatcher.dispatch(addTxTag(txHash, tag))
+)
+
 export const removeAddressTag = (address, tag) => ({
   type: REMOVE_ADDRESS_TAG,
   payload: { address, tag },
@@ -83,6 +104,15 @@ export const removeAddressTag = (address, tag) => ({
 
 export const boundRemoveAddressTag = (address, tag) => (
   dispatcher.dispatch(removeAddressTag(address, tag))
+)
+
+export const removeTxTag = (txHash, tag) => ({
+  type: REMOVE_TX_TAG,
+  payload: { txHash, tag },
+})
+
+export const boundRemoveTxTag = (txHash, tag) => (
+  dispatcher.dispatch(removeTxTag(txHash, tag))
 )
 
 export const removeAddress = (address) => ({

@@ -108,6 +108,20 @@ export function differenceStore (target, value) {
     }
   }
 
+  const valueTxs = get(value, 'userTxs.items', []).filter(item => !isEmpty(item.txTags))
+  const targetTxs = get(target, 'userTxs.items', []).filter(item => !isEmpty(item.txTags))
+
+  for (let i = 0; i < valueTxs.length; i++) {
+    const valueTxHash = valueTxs[i].txHash
+    const valueTags = valueTxs[i].txTags
+    const targetTx = targetTxs.find(item => item.txHash === valueTxHash)
+    if (!targetTx) {
+      tags += valueTags.length
+    } else {
+      tags += difference(valueTags, targetTx.txTags).length
+    }
+  }
+
   return (txNotes || addressNotes || tags) ? {
     txNotes,
     addressNotes,
