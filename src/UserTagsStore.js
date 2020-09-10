@@ -3,10 +3,12 @@ import localStore from './localStore'
 import dispatcher from './dispatcher'
 import { isEmpty, omit, pickBy, mapValues, differenceBy, intersectionBy, validate } from './utils'
 import {
+  ADD_TX_TAG,
   ADD_ADDRESS_TAG,
   CLEAR_DATABASE,
   MARK_ALL_AS_DIRTY,
   MERGE_DATA,
+  REPLACE_TX_TAGS_AND_NOTE,
   REPLACE_ADDRESS_TAGS_AND_NOTE,
   RESET_FROM_DATA,
   RESET_FROM_STORE,
@@ -27,10 +29,12 @@ class UserTagsStore extends ReduceStore {
 
   get actions () {
     return {
+      [ADD_TX_TAG]: this.handleAddAddressTag,
       [ADD_ADDRESS_TAG]: this.handleAddAddressTag,
       [CLEAR_DATABASE]: this.handleClearDatabase,
       [MARK_ALL_AS_DIRTY]: this.handleMarkAllAsDirty,
       [MERGE_DATA]: this.handleMergeData,
+      [REPLACE_TX_TAGS_AND_NOTE]: this.handleReplaceAddressTagsAndNote,
       [REPLACE_ADDRESS_TAGS_AND_NOTE]: this.handleReplaceAddressTagsAndNote,
       [RESET_FROM_DATA]: this.handleResetFromData,
       [RESET_FROM_STORE]: this.handleResetFromStore,
