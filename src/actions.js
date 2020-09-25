@@ -1,7 +1,7 @@
 import dispatcher from './dispatcher'
 
-export const ADD_TX_TAG = 'add_tx_tag'
 export const ADD_ADDRESS_TAG = 'address_tag_add'
+export const ADD_TX_TAG = 'add_tx_tag'
 export const CLEAR_DATABASE = 'clear_database'
 export const MARK_ALL_AS_DIRTY = 'mark_all_as_dirty'
 export const MERGE_DATA = 'merge_data'
@@ -9,19 +9,20 @@ export const REMOVE_ADDRESS = 'address_remove'
 export const REMOVE_ADDRESS_TAG = 'address_tag_remove'
 export const REMOVE_TX = 'remove_tx'
 export const REMOVE_TX_TAG = 'remove_tx_tag'
-export const REPLACE_TX_TAGS_AND_NOTE = 'replace_tx_tags_and_notes'
 export const REPLACE_ADDRESS_TAGS_AND_NOTE = 'address_tags_and_note_replace'
 export const REPLACE_ADDRESS_WATCH = 'replace_address_watch'
 export const REPLACE_TX_NOTE = 'replace_tx_note'
+export const REPLACE_TX_TAGS_AND_NOTE = 'replace_tx_tags_and_notes'
 export const RESET_FROM_DATA = 'reset_from_data'
 export const RESET_FROM_STORE = 'reset_from_store'
 export const SYNC_CHANGES = 'sync_changes'
+export const TOGGLE_HIDE_PRIVATE_TAGS = 'toggle_hide_private_tags'
 export const TOGGLE_PUSH_CHANGES = 'toggle_push_changes'
 export const TOGGLE_SHOW_DIALOG_HELP = 'toggle_show_dialog_help'
 export const TOGGLE_SYNC_TAGS_AND_NOTES = 'toggle_sync_tags_and_notes'
 export const UPDATE_DIRTY_STATUS = 'update_dirty_status'
-export const UPDATE_LAST_SYNC_TIME = 'update_last_sync_time'
 export const UPDATE_LAST_SYNC_CALL = 'update_last_sync_call'
+export const UPDATE_LAST_SYNC_TIME = 'update_last_sync_time'
 export const UPDATE_NOTIFICATION_CHANNELS = 'update_notification_channels'
 export const UPDATE_USERNAME = 'userinfo_username_update'
 
@@ -242,6 +243,15 @@ export const toggleSyncTagsAndNotes = (value) => ({
 
 export const boundToggleSyncTagsAndNotes = (value) => (
   dispatcher.dispatch(toggleSyncTagsAndNotes(value))
+)
+
+export const toggleHidePrivateTags = (value) => ({
+  type: TOGGLE_HIDE_PRIVATE_TAGS,
+  payload: value,
+})
+
+export const boundToggleHidePrivateTags = (value) => (
+  dispatcher.dispatch(toggleHidePrivateTags(value))
 )
 
 export const updateNotificationChannels = (value) => ({

@@ -8,6 +8,7 @@ import {
   TOGGLE_PUSH_CHANGES,
   TOGGLE_SHOW_DIALOG_HELP,
   TOGGLE_SYNC_TAGS_AND_NOTES,
+  TOGGLE_HIDE_PRIVATE_TAGS,
   UPDATE_LAST_SYNC_TIME,
   UPDATE_LAST_SYNC_CALL,
   UPDATE_NOTIFICATION_CHANNELS,
@@ -27,6 +28,7 @@ class AppStore extends ReduceStore {
       [TOGGLE_PUSH_CHANGES]: this.handleTogglePushChanges,
       [TOGGLE_SHOW_DIALOG_HELP]: this.handleToggleShowDialogHelp,
       [TOGGLE_SYNC_TAGS_AND_NOTES]: this.handleToggleSyncTagsAndNotes,
+      [TOGGLE_HIDE_PRIVATE_TAGS]: this.handleToggleHidePrivateTags,
       [UPDATE_LAST_SYNC_TIME]: this.handleUpdateLastSyncTime,
       [UPDATE_LAST_SYNC_CALL]: this.handleUpdateLastSyncCall,
       [UPDATE_NOTIFICATION_CHANNELS]: this.handleUpdateNotificationChannels,
@@ -71,6 +73,10 @@ class AppStore extends ReduceStore {
 
   canSyncTagsAndNotes () {
     return this.getState().syncTagsAndNotes
+  }
+
+  hidePrivateTags () {
+    return this.getState().hidePrivateTags
   }
 
   canShowDialogHelp () {
@@ -159,6 +165,13 @@ class AppStore extends ReduceStore {
     return {
       ...state,
       syncTagsAndNotes: Boolean(action.payload),
+    }
+  }
+
+  handleToggleHidePrivateTags = (state, action) => {
+    return {
+      ...state,
+      hidePrivateTags: Boolean(action.payload),
     }
   }
 
