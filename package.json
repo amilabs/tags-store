@@ -1,5 +1,5 @@
 {
-  "name": "tags-store",
+  "name": "@amilabs/tags-store",
   "version": "1.4.2",
   "author": "Anton Tursenev <anton@rikishi.info>",
   "license": "MIT",
